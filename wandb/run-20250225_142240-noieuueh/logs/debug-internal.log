@@ -1,0 +1,10 @@
+{"time":"2025-02-25T14:22:40.517318713+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.7","symlink path":"/home/minkyu/gfn-diffusion/wandb/run-20250225_142240-noieuueh/logs/debug-core.log"}
+{"time":"2025-02-25T14:22:40.625666242+09:00","level":"INFO","msg":"created new stream","id":"noieuueh"}
+{"time":"2025-02-25T14:22:40.625707152+09:00","level":"INFO","msg":"stream: started","id":"noieuueh"}
+{"time":"2025-02-25T14:22:40.625789172+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"noieuueh"}
+{"time":"2025-02-25T14:22:40.625822642+09:00","level":"INFO","msg":"handler: started","stream_id":"noieuueh"}
+{"time":"2025-02-25T14:22:40.625867402+09:00","level":"INFO","msg":"sender: started","stream_id":"noieuueh"}
+{"time":"2025-02-25T14:22:40.894060829+09:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-02-25T14:25:20.939904673+09:00","level":"INFO","msg":"stream: closing","id":"noieuueh"}
+{"time":"2025-02-25T14:25:20.939943813+09:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-02-25T14:25:20.940529693+09:00","level":"INFO","msg":"Stopped system monitor"}

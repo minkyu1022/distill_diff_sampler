@@ -1,0 +1,7 @@
+{"time":"2025-02-25T15:12:32.677798926+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.7","symlink path":"/home/minkyu/gfn-diffusion/wandb/run-20250225_151232-crg6srgq/logs/debug-core.log"}
+{"time":"2025-02-25T15:12:32.786416898+09:00","level":"INFO","msg":"created new stream","id":"crg6srgq"}
+{"time":"2025-02-25T15:12:32.786459808+09:00","level":"INFO","msg":"stream: started","id":"crg6srgq"}
+{"time":"2025-02-25T15:12:32.786529108+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"crg6srgq"}
+{"time":"2025-02-25T15:12:32.786559758+09:00","level":"INFO","msg":"handler: started","stream_id":"crg6srgq"}
+{"time":"2025-02-25T15:12:32.786625458+09:00","level":"INFO","msg":"sender: started","stream_id":"crg6srgq"}
+{"time":"2025-02-25T15:12:33.12614993+09:00","level":"INFO","msg":"Starting system monitor"}

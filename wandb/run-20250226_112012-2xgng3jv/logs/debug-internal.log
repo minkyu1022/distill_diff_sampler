@@ -1,0 +1,15 @@
+{"time":"2025-02-26T11:20:12.187141927+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.7","symlink path":"/home/minkyu/gfn-diffusion/wandb/run-20250226_112012-2xgng3jv/logs/debug-core.log"}
+{"time":"2025-02-26T11:20:12.296725427+09:00","level":"INFO","msg":"created new stream","id":"2xgng3jv"}
+{"time":"2025-02-26T11:20:12.296784588+09:00","level":"INFO","msg":"stream: started","id":"2xgng3jv"}
+{"time":"2025-02-26T11:20:12.296840438+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"2xgng3jv"}
+{"time":"2025-02-26T11:20:12.296864738+09:00","level":"INFO","msg":"sender: started","stream_id":"2xgng3jv"}
+{"time":"2025-02-26T11:20:12.296963249+09:00","level":"INFO","msg":"handler: started","stream_id":"2xgng3jv"}
+{"time":"2025-02-26T11:20:12.664035925+09:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-02-26T11:23:10.677267307+09:00","level":"INFO","msg":"stream: closing","id":"2xgng3jv"}
+{"time":"2025-02-26T11:23:10.677310837+09:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-02-26T11:23:10.678193385+09:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-02-26T11:23:11.461806472+09:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-02-26T11:23:11.70191037+09:00","level":"INFO","msg":"handler: closed","stream_id":"2xgng3jv"}
+{"time":"2025-02-26T11:23:11.701965861+09:00","level":"INFO","msg":"writer: Close: closed","stream_id":"2xgng3jv"}
+{"time":"2025-02-26T11:23:11.701988081+09:00","level":"INFO","msg":"sender: closed","stream_id":"2xgng3jv"}
+{"time":"2025-02-26T11:23:11.702157402+09:00","level":"INFO","msg":"stream: closed","id":"2xgng3jv"}

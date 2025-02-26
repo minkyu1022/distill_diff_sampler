@@ -1,0 +1,18 @@
+{"time":"2025-02-26T15:27:13.152053881+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.7","symlink path":"/home/minkyu/gfn-diffusion/wandb/run-20250226_152713-lmxch31k/logs/debug-core.log"}
+{"time":"2025-02-26T15:27:13.260923945+09:00","level":"INFO","msg":"created new stream","id":"lmxch31k"}
+{"time":"2025-02-26T15:27:13.260981226+09:00","level":"INFO","msg":"stream: started","id":"lmxch31k"}
+{"time":"2025-02-26T15:27:13.261039696+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"lmxch31k"}
+{"time":"2025-02-26T15:27:13.261087566+09:00","level":"INFO","msg":"sender: started","stream_id":"lmxch31k"}
+{"time":"2025-02-26T15:27:13.261069866+09:00","level":"INFO","msg":"handler: started","stream_id":"lmxch31k"}
+{"time":"2025-02-26T15:27:13.568099003+09:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-02-26T15:28:43.785023253+09:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/graphql\": net/http: request canceled (Client.Timeout exceeded while awaiting headers)"}
+{"time":"2025-02-26T15:30:00.801037317+09:00","level":"INFO","msg":"api: retrying HTTP error","status":500,"url":"https://api.wandb.ai/files/minkyu1022_/GFN%20Energy/lmxch31k/file_stream","body":"{\"error\":\"context deadline exceeded\"}"}
+{"time":"2025-02-26T15:30:09.902811995+09:00","level":"INFO","msg":"stream: closing","id":"lmxch31k"}
+{"time":"2025-02-26T15:30:09.902864945+09:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-02-26T15:30:09.90376972+09:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-02-26T15:30:13.787911575+09:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/graphql\": net/http: request canceled (Client.Timeout exceeded while awaiting headers)"}
+{"time":"2025-02-26T15:30:17.749924812+09:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-02-26T15:30:17.97180938+09:00","level":"INFO","msg":"handler: closed","stream_id":"lmxch31k"}
+{"time":"2025-02-26T15:30:17.97184887+09:00","level":"INFO","msg":"writer: Close: closed","stream_id":"lmxch31k"}
+{"time":"2025-02-26T15:30:17.97188323+09:00","level":"INFO","msg":"sender: closed","stream_id":"lmxch31k"}
+{"time":"2025-02-26T15:30:17.97192432+09:00","level":"INFO","msg":"stream: closed","id":"lmxch31k"}

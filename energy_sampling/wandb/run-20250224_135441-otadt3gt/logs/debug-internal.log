@@ -1,0 +1,20 @@
+{"time":"2025-02-24T13:54:41.502000746+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.7","symlink path":"/home/minkyu/gfn-diffusion/energy_sampling/wandb/run-20250224_135441-otadt3gt/logs/debug-core.log"}
+{"time":"2025-02-24T13:54:41.61101889+09:00","level":"INFO","msg":"created new stream","id":"otadt3gt"}
+{"time":"2025-02-24T13:54:41.61105896+09:00","level":"INFO","msg":"stream: started","id":"otadt3gt"}
+{"time":"2025-02-24T13:54:41.6111257+09:00","level":"INFO","msg":"handler: started","stream_id":"otadt3gt"}
+{"time":"2025-02-24T13:54:41.61113913+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"otadt3gt"}
+{"time":"2025-02-24T13:54:41.61120364+09:00","level":"INFO","msg":"sender: started","stream_id":"otadt3gt"}
+{"time":"2025-02-24T13:54:41.914479759+09:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-02-24T13:55:37.378671361+09:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/files/minkyu1022_/GFN%20Energy/otadt3gt/file_stream\": dial tcp: lookup api.wandb.ai on 127.0.0.53:53: read udp 127.0.0.1:36157->127.0.0.53:53: i/o timeout"}
+{"time":"2025-02-24T13:55:49.69653458+09:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/files/minkyu1022_/GFN%20Energy/otadt3gt/file_stream\": dial tcp: lookup api.wandb.ai on 127.0.0.53:53: read udp 127.0.0.1:35951->127.0.0.53:53: i/o timeout"}
+{"time":"2025-02-24T13:55:56.976121513+09:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/graphql\": net/http: request canceled (Client.Timeout exceeded while awaiting headers)"}
+{"time":"2025-02-24T13:56:03.930767172+09:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/files/minkyu1022_/GFN%20Energy/otadt3gt/file_stream\": dial tcp: lookup api.wandb.ai on 127.0.0.53:53: read udp 127.0.0.1:60577->127.0.0.53:53: i/o timeout"}
+{"time":"2025-02-24T13:56:21.663018254+09:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/graphql\": read tcp 192.168.0.5:50224->35.186.228.49:443: read: connection reset by peer"}
+{"time":"2025-02-24T13:56:51.884786241+09:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/files/minkyu1022_/GFN%20Energy/otadt3gt/file_stream\": dial tcp: lookup api.wandb.ai on 127.0.0.53:53: read udp 127.0.0.1:47952->127.0.0.53:53: i/o timeout"}
+{"time":"2025-02-24T13:57:04.353384348+09:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/files/minkyu1022_/GFN%20Energy/otadt3gt/file_stream\": dial tcp: lookup api.wandb.ai on 127.0.0.53:53: read udp 127.0.0.1:43008->127.0.0.53:53: i/o timeout"}
+{"time":"2025-02-24T13:57:11.979035925+09:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/graphql\": net/http: request canceled (Client.Timeout exceeded while awaiting headers)"}
+{"time":"2025-02-24T13:57:18.60112303+09:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/files/minkyu1022_/GFN%20Energy/otadt3gt/file_stream\": dial tcp: lookup api.wandb.ai on 127.0.0.53:53: read udp 127.0.0.1:35891->127.0.0.53:53: i/o timeout"}
+{"time":"2025-02-24T13:57:35.391019518+09:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/graphql\": read tcp 192.168.0.5:50274->35.186.228.49:443: read: connection reset by peer"}
+{"time":"2025-02-24T13:59:59.705152215+09:00","level":"INFO","msg":"stream: closing","id":"otadt3gt"}
+{"time":"2025-02-24T13:59:59.705186425+09:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-02-24T13:59:59.705771245+09:00","level":"INFO","msg":"Stopped system monitor"}

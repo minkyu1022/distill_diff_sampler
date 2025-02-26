@@ -1,0 +1,15 @@
+{"time":"2025-02-25T14:58:02.437314413+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.7","symlink path":"/home/minkyu/gfn-diffusion/wandb/run-20250225_145802-can67iha/logs/debug-core.log"}
+{"time":"2025-02-25T14:58:02.856332948+09:00","level":"INFO","msg":"created new stream","id":"can67iha"}
+{"time":"2025-02-25T14:58:02.856363408+09:00","level":"INFO","msg":"stream: started","id":"can67iha"}
+{"time":"2025-02-25T14:58:02.856672639+09:00","level":"INFO","msg":"handler: started","stream_id":"can67iha"}
+{"time":"2025-02-25T14:58:02.856711319+09:00","level":"INFO","msg":"sender: started","stream_id":"can67iha"}
+{"time":"2025-02-25T14:58:02.856727749+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"can67iha"}
+{"time":"2025-02-25T14:58:03.151247084+09:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-02-25T15:00:53.2369075+09:00","level":"INFO","msg":"stream: closing","id":"can67iha"}
+{"time":"2025-02-25T15:00:53.23693948+09:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-02-25T15:00:53.536896639+09:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-02-25T15:00:54.223133716+09:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-02-25T15:00:54.447677375+09:00","level":"INFO","msg":"handler: closed","stream_id":"can67iha"}
+{"time":"2025-02-25T15:00:54.447697555+09:00","level":"INFO","msg":"writer: Close: closed","stream_id":"can67iha"}
+{"time":"2025-02-25T15:00:54.447741235+09:00","level":"INFO","msg":"sender: closed","stream_id":"can67iha"}
+{"time":"2025-02-25T15:00:54.447748675+09:00","level":"INFO","msg":"stream: closed","id":"can67iha"}

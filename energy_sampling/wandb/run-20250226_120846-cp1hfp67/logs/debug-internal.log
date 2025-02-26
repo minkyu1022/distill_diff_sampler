@@ -1,0 +1,16 @@
+{"time":"2025-02-26T12:08:46.469703684+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.7","symlink path":"/home/minkyu/gfn-diffusion/energy_sampling/wandb/run-20250226_120846-cp1hfp67/logs/debug-core.log"}
+{"time":"2025-02-26T12:08:46.579314788+09:00","level":"INFO","msg":"created new stream","id":"cp1hfp67"}
+{"time":"2025-02-26T12:08:46.579354248+09:00","level":"INFO","msg":"stream: started","id":"cp1hfp67"}
+{"time":"2025-02-26T12:08:46.579402638+09:00","level":"INFO","msg":"sender: started","stream_id":"cp1hfp67"}
+{"time":"2025-02-26T12:08:46.579388688+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"cp1hfp67"}
+{"time":"2025-02-26T12:08:46.579435419+09:00","level":"INFO","msg":"handler: started","stream_id":"cp1hfp67"}
+{"time":"2025-02-26T12:08:46.888471055+09:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-02-26T15:31:18.4873028+09:00","level":"INFO","msg":"api: retrying HTTP error","status":500,"url":"https://api.wandb.ai/files/minkyu1022_/GFN%20Energy/cp1hfp67/file_stream","body":"{\"error\":\"context deadline exceeded\"}"}
+{"time":"2025-02-26T16:38:41.405827158+09:00","level":"INFO","msg":"stream: closing","id":"cp1hfp67"}
+{"time":"2025-02-26T16:38:41.405885108+09:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-02-26T16:38:41.406956259+09:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-02-26T16:38:42.272445365+09:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-02-26T16:38:42.503707534+09:00","level":"INFO","msg":"handler: closed","stream_id":"cp1hfp67"}
+{"time":"2025-02-26T16:38:42.503768214+09:00","level":"INFO","msg":"writer: Close: closed","stream_id":"cp1hfp67"}
+{"time":"2025-02-26T16:38:42.503777194+09:00","level":"INFO","msg":"sender: closed","stream_id":"cp1hfp67"}
+{"time":"2025-02-26T16:38:42.503932474+09:00","level":"INFO","msg":"stream: closed","id":"cp1hfp67"}

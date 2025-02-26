@@ -1,0 +1,10 @@
+{"time":"2025-02-25T18:11:04.010647387+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.7","symlink path":"/home/minkyu/gfn-diffusion/energy_sampling/wandb/run-20250225_181104-flehzp5x/logs/debug-core.log"}
+{"time":"2025-02-25T18:11:04.119877264+09:00","level":"INFO","msg":"created new stream","id":"flehzp5x"}
+{"time":"2025-02-25T18:11:04.119917664+09:00","level":"INFO","msg":"stream: started","id":"flehzp5x"}
+{"time":"2025-02-25T18:11:04.119983534+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"flehzp5x"}
+{"time":"2025-02-25T18:11:04.120019283+09:00","level":"INFO","msg":"handler: started","stream_id":"flehzp5x"}
+{"time":"2025-02-25T18:11:04.120058953+09:00","level":"INFO","msg":"sender: started","stream_id":"flehzp5x"}
+{"time":"2025-02-25T18:11:04.410006599+09:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-02-25T18:15:29.314859848+09:00","level":"INFO","msg":"stream: closing","id":"flehzp5x"}
+{"time":"2025-02-25T18:15:29.314913057+09:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-02-25T18:15:29.315802294+09:00","level":"INFO","msg":"Stopped system monitor"}

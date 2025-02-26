@@ -1,0 +1,7 @@
+{"time":"2025-02-24T15:46:10.161780148+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.7","symlink path":"/home/minkyu/gfn-diffusion/energy_sampling/wandb/run-20250224_154610-mconilar/logs/debug-core.log"}
+{"time":"2025-02-24T15:46:10.271541328+09:00","level":"INFO","msg":"created new stream","id":"mconilar"}
+{"time":"2025-02-24T15:46:10.271583238+09:00","level":"INFO","msg":"stream: started","id":"mconilar"}
+{"time":"2025-02-24T15:46:10.271642518+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"mconilar"}
+{"time":"2025-02-24T15:46:10.271688758+09:00","level":"INFO","msg":"handler: started","stream_id":"mconilar"}
+{"time":"2025-02-24T15:46:10.271782058+09:00","level":"INFO","msg":"sender: started","stream_id":"mconilar"}
+{"time":"2025-02-24T15:46:10.575295594+09:00","level":"INFO","msg":"Starting system monitor"}

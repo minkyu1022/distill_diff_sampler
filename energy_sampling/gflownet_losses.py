@@ -88,11 +88,15 @@ def bwd_mle(samples, gfn, log_reward_fn, exploration_std=None):
     return loss.mean()
 
 
-def pis(initial_state, gfn, log_reward_fn, exploration_std=None):
+def pis(initial_state, gfn, log_reward_fn, exploration_std=None, return_exp = False):
     states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_fwd(initial_state, exploration_std, log_reward_fn, pis=True)
     with torch.enable_grad():
         log_r = log_reward_fn(states[:, -1])
 
     normalization_constant = float(1 / initial_state.shape[-1])
     loss = normalization_constant * (log_pfs.sum(-1) - log_pbs.sum(-1) - log_r)
-    return loss.mean()
+    
+    if return_exp:
+        return loss.mean(), states, log_pfs, log_pbs, log_r
+    else:
+        return loss.mean()

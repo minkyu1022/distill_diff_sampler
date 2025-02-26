@@ -17,6 +17,19 @@ from tqdm import trange
 import wandb
 
 parser = argparse.ArgumentParser(description='GFN Linear Regression')
+
+# Distillation =====
+
+# parser.add_argument('--phase', type=str, default="forward",
+#                     choices=["forward", "backward"],
+#                     help="Choose 'forward' to run TB+LP and collect samples, 'backward' to run TB using loaded samples.")
+parser.add_argument('--save_buffer_path', type=str, default=None,
+                    help="Path to save the replay buffer after TB+LP forward training.")
+parser.add_argument('--load_buffer_path', type=str, default=None,
+                    help="Path to load a pre-saved replay buffer for backward TB training.")
+
+# Distillation =====
+
 parser.add_argument('--lr_policy', type=float, default=1e-3)
 parser.add_argument('--lr_flow', type=float, default=1e-2)
 parser.add_argument('--lr_back', type=float, default=1e-3)
@@ -33,8 +46,8 @@ parser.add_argument('--t_scale', type=float, default=5.)
 parser.add_argument('--log_var_range', type=float, default=4.)
 parser.add_argument('--energy', type=str, default='9gmm',
                     choices=('9gmm', '25gmm', 'hard_funnel', 'easy_funnel', 'many_well'))
-parser.add_argument('--mode_fwd', type=str, default="tb", choices=('tb', 'tb-avg', 'db', 'subtb', "pis"))
-parser.add_argument('--mode_bwd', type=str, default="tb", choices=('tb', 'tb-avg', 'mle'))
+parser.add_argument('--mode_fwd', type=str, default='None', choices=('tb', 'tb-avg', 'db', 'subtb', "pis"))
+parser.add_argument('--mode_bwd', type=str, default='None', choices=('tb', 'tb-avg', 'mle'))
 parser.add_argument('--both_ways', action='store_true', default=False)
 
 # For local search
@@ -111,6 +124,11 @@ if args.pis_architectures:
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 coeff_matrix = cal_subtb_coef_matrix(args.subtb_lambda, args.T).to(device)
+
+if 'None' in args.mode_bwd:
+    args.bwd = False
+else:
+    args.bwd = True
 
 if args.both_ways and args.bwd:
     args.bwd = False
@@ -197,6 +215,7 @@ def eval_step(eval_data, energy, gfn_model, final_eval=False):
         samples, metrics['eval/log_Z'], metrics['eval/log_Z_lb'], metrics[
             'eval/log_Z_learned'] = log_partition_function(
             init_state, gfn_model, energy.log_reward)
+            
     if eval_data is None:
         log_elbo = None
         sample_based_metrics = None
@@ -205,10 +224,12 @@ def eval_step(eval_data, energy, gfn_model, final_eval=False):
             metrics['final_eval/mean_log_likelihood'] = 0. if args.mode_fwd == 'pis' else mean_log_likelihood(eval_data,
                                                                                                               gfn_model,
                                                                                                               energy.log_reward)
+            metrics['final_eval/EUBO'] = EUBO(eval_data, gfn_model, energy.log_reward)
         else:
             metrics['eval/mean_log_likelihood'] = 0. if args.mode_fwd == 'pis' else mean_log_likelihood(eval_data,
                                                                                                         gfn_model,
                                                                                                         energy.log_reward)
+            metrics['eval_eval/EUBO'] = EUBO(eval_data, gfn_model, energy.log_reward)
         metrics.update(get_sample_metrics(samples, eval_data, final_eval))
     gfn_model.train()
     return metrics
@@ -232,7 +253,9 @@ def train_step(energy, gfn_model, gfn_optimizer, it, exploratory, buffer, buffer
     elif args.bwd:
         loss = bwd_train_step(energy, gfn_model, buffer, buffer_ls, exploration_std, it=it)
     else:
-        loss = fwd_train_step(energy, gfn_model, exploration_std)
+        # loss = fwd_train_step(energy, gfn_model, exploration_std)
+        loss, states, _, _, log_r  = fwd_train_step(energy, gfn_model, exploration_std, return_exp=True)
+        buffer.add(states[:, -1],log_r)
 
     loss.backward()
     gfn_optimizer.step()
@@ -296,11 +319,45 @@ def train():
     print(gfn_model)
     metrics = dict()
 
-    buffer = ReplayBuffer(args.buffer_size, device, energy.log_reward,args.batch_size, data_ndim=energy.data_ndim, beta=args.beta,
-                          rank_weight=args.rank_weight, prioritized=args.prioritized)
-    buffer_ls = ReplayBuffer(args.buffer_size, device, energy.log_reward,args.batch_size, data_ndim=energy.data_ndim, beta=args.beta,
-                          rank_weight=args.rank_weight, prioritized=args.prioritized)
+    # Distillation =====
+    
+    if args.load_buffer_path is not None:
+        
+        load_dir = "energy_sampling/teacher_buffer"
+        args.load_buffer_path = os.path.join(load_dir, args.load_buffer_path)
+        
+        print("Loading replay buffer from:", args.load_buffer_path)
+        buffer_data = torch.load(args.load_buffer_path)
+        
+        buffer = ReplayBuffer(args.buffer_size, device, energy.log_reward, args.batch_size,
+                            data_ndim=energy.data_ndim, beta=args.beta,
+                            rank_weight=args.rank_weight, prioritized=args.prioritized)
+        buffer.add(buffer_data['samples'],buffer_data['rewards'])
+        
+        # (You may also want to create a second buffer (buffer_ls) if required.)
+        buffer_ls = ReplayBuffer(args.buffer_size, device, energy.log_reward, args.batch_size,
+                                data_ndim=energy.data_ndim, beta=args.beta,
+                                rank_weight=args.rank_weight, prioritized=args.prioritized)
+        buffer_ls.add(buffer_data['samples'],buffer_data['rewards'])
+        
+    else:
+        buffer = ReplayBuffer(args.buffer_size, device, energy.log_reward, args.batch_size,
+                            data_ndim=energy.data_ndim, beta=args.beta,
+                            rank_weight=args.rank_weight, prioritized=args.prioritized)
+        buffer_ls = ReplayBuffer(args.buffer_size, device, energy.log_reward, args.batch_size,
+                            data_ndim=energy.data_ndim, beta=args.beta,
+                            rank_weight=args.rank_weight, prioritized=args.prioritized)
+        
+    # Distilaltion =====
+
+    
+    # buffer = ReplayBuffer(args.buffer_size, device, energy.log_reward,args.batch_size, data_ndim=energy.data_ndim, beta=args.beta,
+    #                       rank_weight=args.rank_weight, prioritized=args.prioritized)
+    # buffer_ls = ReplayBuffer(args.buffer_size, device, energy.log_reward,args.batch_size, data_ndim=energy.data_ndim, beta=args.beta,
+    #                       rank_weight=args.rank_weight, prioritized=args.prioritized)
+    
     gfn_model.train()
+    
     for i in trange(args.epochs + 1):
         metrics['train/loss'] = train_step(energy, gfn_model, gfn_optimizer, i, args.exploratory,
                                            buffer, buffer_ls, args.exploration_factor, args.exploration_wd)
@@ -315,15 +372,38 @@ def train():
             if i % 1000 == 0:
                 torch.save(gfn_model.state_dict(), f'{name}model.pt')
 
-    eval_results = final_eval(energy, gfn_model).to(device)
+    # Modification of "dict to to" error
+    eval_results = final_eval(energy, gfn_model)
+    eval_results = {k: (v.to(device) if isinstance(v, torch.Tensor) else v) for k, v in eval_results.items()}
+    # Modification of "dict to to" error
     metrics.update(eval_results)
     if 'tb-avg' in args.mode_fwd or 'tb-avg' in args.mode_bwd:
-        del metrics['eval/log_Z_learned']
+        if 'eval/log_Z_learned' in metrics:
+          del metrics['eval/log_Z_learned']
     torch.save(gfn_model.state_dict(), f'{name}model_final.pt')
+    
+    # Distillation =====
+    
+    if args.save_buffer_path is not None:
+        teacher_knowledge = {
+            'samples': buffer.sample_dataset.get_seq(),
+            'rewards': buffer.reward_dataset.get_tsrs(),
+        }
+        
+        save_dir = "energy_sampling/teacher_buffer"
+        os.makedirs(save_dir, exist_ok=True)
+        
+        args.save_buffer_path = os.path.join(save_dir, args.save_buffer_path)
+        
+        torch.save(teacher_knowledge, args.save_buffer_path)
+        
+        print("Replay buffer saved to", args.save_buffer_path)
+        
+    # Distillation =====
 
 
 def final_eval(energy, gfn_model):
-    final_eval_data = energy.sample(final_eval_data_size)
+    final_eval_data = energy.sample(final_eval_data_size).to(energy.device)
     results = eval_step(final_eval_data, energy, gfn_model, final_eval=True)
     return results
 

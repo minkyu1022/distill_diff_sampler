@@ -1,0 +1,7 @@
+{"time":"2025-02-26T10:48:55.166879841+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.7","symlink path":"/home/minkyu/gfn-diffusion/wandb/run-20250226_104855-dpttuh5v/logs/debug-core.log"}
+{"time":"2025-02-26T10:48:55.275706329+09:00","level":"INFO","msg":"created new stream","id":"dpttuh5v"}
+{"time":"2025-02-26T10:48:55.275751709+09:00","level":"INFO","msg":"stream: started","id":"dpttuh5v"}
+{"time":"2025-02-26T10:48:55.275815529+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"dpttuh5v"}
+{"time":"2025-02-26T10:48:55.275853069+09:00","level":"INFO","msg":"handler: started","stream_id":"dpttuh5v"}
+{"time":"2025-02-26T10:48:55.275928829+09:00","level":"INFO","msg":"sender: started","stream_id":"dpttuh5v"}
+{"time":"2025-02-26T10:48:55.625161825+09:00","level":"INFO","msg":"Starting system monitor"}

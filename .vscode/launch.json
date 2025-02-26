@@ -1,0 +1,96 @@
+{
+  // IntelliSense를 사용하여 가능한 특성에 대해 알아보세요.
+  // 기존 특성에 대한 설명을 보려면 가리킵니다.
+  // 자세한 내용을 보려면 https://go.microsoft.com/fwlink/?linkid=830387을(를) 방문하세요.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "error check",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "energy_sampling/train.py",
+      "args": [
+        "--t_scale",
+        "1.",
+        "--energy",
+        "many_well",
+        "--pis_architectures",
+        "--zero_init",
+        "--clipping",
+        "--mode_fwd",
+        "pis",
+        "--lr_policy",
+        "1e-3",
+        "--epochs",
+        "100",
+        "--langevin",
+        "--save_buffer_path",
+        "buffer_PIS+LP.pt",
+      ],
+      "console": "integratedTerminal",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "2"
+      }
+    },
+    {
+      "name": "save buffer",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "energy_sampling/train.py",
+      "args": [
+        "--t_scale",
+        "1.",
+        "--energy",
+        "many_well",
+        "--pis_architectures",
+        "--zero_init",
+        "--clipping",
+        "--mode_fwd",
+        "tb",
+        "--mode_bwd",
+        "tb",
+        "--lr_policy",
+        "1e-3",
+        "--both_ways",
+        "--langevin",
+        "--epochs",
+        "100",
+        "--save_buffer_path",
+        "buffer_TB+LP_both.pt",
+      ],
+      "console": "integratedTerminal",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "3"
+      }
+    },
+    {
+      "name": "load buffer",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "energy_sampling/train.py",
+      "args": [
+        "--t_scale",
+        "1.",
+        "--energy",
+        "many_well",
+        "--pis_architectures",
+        "--zero_init",
+        "--clipping",
+        "--mode_bwd",
+        "tb",
+        "--lr_policy",
+        "1e-3",
+        "--lr_flow",
+        "1e-1",
+        "--epochs",
+        "100",
+        "--load_buffer_path",
+        "buffer_TB+LP_fwd.pt",
+      ],
+      "console": "integratedTerminal",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "0"
+      }
+    }
+  ]
+}

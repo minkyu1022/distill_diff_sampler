@@ -1,0 +1,26 @@
+{"time":"2025-02-24T13:59:35.147731246+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.7","symlink path":"/home/minkyu/gfn-diffusion/energy_sampling/wandb/run-20250224_135935-jhi05su4/logs/debug-core.log"}
+{"time":"2025-02-24T13:59:35.255792047+09:00","level":"INFO","msg":"created new stream","id":"jhi05su4"}
+{"time":"2025-02-24T13:59:35.255835057+09:00","level":"INFO","msg":"stream: started","id":"jhi05su4"}
+{"time":"2025-02-24T13:59:35.256130867+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"jhi05su4"}
+{"time":"2025-02-24T13:59:35.256183077+09:00","level":"INFO","msg":"handler: started","stream_id":"jhi05su4"}
+{"time":"2025-02-24T13:59:35.256286237+09:00","level":"INFO","msg":"sender: started","stream_id":"jhi05su4"}
+{"time":"2025-02-24T13:59:35.531413301+09:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-02-24T14:02:15.365922956+09:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/graphql\": net/http: request canceled (Client.Timeout exceeded while awaiting headers)"}
+{"time":"2025-02-24T14:02:20.59333956+09:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/graphql\": net/http: request canceled (Client.Timeout exceeded while awaiting headers)"}
+{"time":"2025-02-24T14:02:36.447381405+09:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/files/minkyu1022_/GFN%20Energy/jhi05su4/file_stream\": read tcp 192.168.0.5:50444->35.186.228.49:443: read: connection reset by peer"}
+{"time":"2025-02-24T14:02:38.49533155+09:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/graphql\": read tcp 192.168.0.5:50364->35.186.228.49:443: read: connection reset by peer"}
+{"time":"2025-02-24T14:02:38.49542941+09:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/graphql\": read tcp 192.168.0.5:50364->35.186.228.49:443: read: connection reset by peer"}
+{"time":"2025-02-24T14:05:05.599817145+09:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/graphql\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"}
+{"time":"2025-02-24T14:05:28.479207927+09:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/graphql\": read tcp 192.168.0.5:50464->35.186.228.49:443: read: connection reset by peer"}
+{"time":"2025-02-24T14:17:53.122819589+09:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/files/minkyu1022_/GFN%20Energy/jhi05su4/file_stream\": dial tcp: lookup api.wandb.ai on 127.0.0.53:53: read udp 127.0.0.1:57732->127.0.0.53:53: i/o timeout"}
+{"time":"2025-02-24T14:18:05.404150745+09:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/files/minkyu1022_/GFN%20Energy/jhi05su4/file_stream\": dial tcp: lookup api.wandb.ai on 127.0.0.53:53: read udp 127.0.0.1:50245->127.0.0.53:53: i/o timeout"}
+{"time":"2025-02-24T14:18:05.635884213+09:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/graphql\": net/http: request canceled (Client.Timeout exceeded while awaiting headers)"}
+{"time":"2025-02-24T14:18:28.766976225+09:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/graphql\": read tcp 192.168.0.5:50546->35.186.228.49:443: read: connection reset by peer"}
+{"time":"2025-02-24T15:38:56.717592271+09:00","level":"INFO","msg":"stream: closing","id":"jhi05su4"}
+{"time":"2025-02-24T15:38:56.717627611+09:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-02-24T15:38:56.718242788+09:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-02-24T15:38:57.480804371+09:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-02-24T15:38:57.741775915+09:00","level":"INFO","msg":"handler: closed","stream_id":"jhi05su4"}
+{"time":"2025-02-24T15:38:57.741827355+09:00","level":"INFO","msg":"sender: closed","stream_id":"jhi05su4"}
+{"time":"2025-02-24T15:38:57.741819505+09:00","level":"INFO","msg":"writer: Close: closed","stream_id":"jhi05su4"}
+{"time":"2025-02-24T15:38:57.741964304+09:00","level":"INFO","msg":"stream: closed","id":"jhi05su4"}

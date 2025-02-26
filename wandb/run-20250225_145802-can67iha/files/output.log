@@ -1,0 +1,74 @@
+GFN(
+  (t_model): TimeEncodingPIS(
+    (t_model): Sequential(
+      (0): Linear(in_features=128, out_features=64, bias=True)
+      (1): GELU(approximate='none')
+      (2): Linear(in_features=64, out_features=64, bias=True)
+    )
+  )
+  (s_model): StateEncodingPIS(
+    (x_model): Linear(in_features=32, out_features=64, bias=True)
+  )
+  (joint_model): JointPolicyPIS(
+    (model): Sequential(
+      (0): GELU(approximate='none')
+      (1): Sequential(
+        (0): Linear(in_features=64, out_features=64, bias=True)
+        (1): GELU(approximate='none')
+      )
+      (2): Sequential(
+        (0): Linear(in_features=64, out_features=64, bias=True)
+        (1): GELU(approximate='none')
+      )
+      (3): Linear(in_features=64, out_features=64, bias=True)
+    )
+  )
+  (langevin_scaling_model): LangevinScalingModelPIS(
+    (lgv_model): Sequential(
+      (0): Linear(in_features=128, out_features=64, bias=True)
+      (1): Sequential(
+        (0): GELU(approximate='none')
+        (1): Linear(in_features=64, out_features=64, bias=True)
+      )
+      (2): Sequential(
+        (0): GELU(approximate='none')
+        (1): Linear(in_features=64, out_features=64, bias=True)
+      )
+      (3): GELU(approximate='none')
+      (4): Linear(in_features=64, out_features=1, bias=True)
+    )
+  )
+)
+100%|████████████████████████████████████████████████████████████████████| 101/101 [01:04<00:00,  1.56it/s]
+Traceback (most recent call last):
+  File "/compuworks/anaconda3/envs/gfn_school/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/compuworks/anaconda3/envs/gfn_school/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/home/minkyu/.vscode-server/extensions/ms-python.debugpy-2025.0.1-linux-x64/bundled/libs/debugpy/adapter/../../debugpy/launcher/../../debugpy/__main__.py", line 71, in <module>
+    cli.main()
+  File "/home/minkyu/.vscode-server/extensions/ms-python.debugpy-2025.0.1-linux-x64/bundled/libs/debugpy/adapter/../../debugpy/launcher/../../debugpy/../debugpy/server/cli.py", line 501, in main
+    run()
+  File "/home/minkyu/.vscode-server/extensions/ms-python.debugpy-2025.0.1-linux-x64/bundled/libs/debugpy/adapter/../../debugpy/launcher/../../debugpy/../debugpy/server/cli.py", line 351, in run_file
+    runpy.run_path(target, run_name="__main__")
+  File "/home/minkyu/.vscode-server/extensions/ms-python.debugpy-2025.0.1-linux-x64/bundled/libs/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_runpy.py", line 310, in run_path
+    return _run_module_code(code, init_globals, run_name, pkg_name=pkg_name, script_name=fname)
+  File "/home/minkyu/.vscode-server/extensions/ms-python.debugpy-2025.0.1-linux-x64/bundled/libs/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_runpy.py", line 127, in _run_module_code
+    _run_code(code, mod_globals, init_globals, mod_name, mod_spec, pkg_name, script_name)
+  File "/home/minkyu/.vscode-server/extensions/ms-python.debugpy-2025.0.1-linux-x64/bundled/libs/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_runpy.py", line 118, in _run_code
+    exec(code, run_globals)
+  File "energy_sampling/train.py", line 383, in <module>
+    train()
+  File "energy_sampling/train.py", line 353, in train
+    eval_results = final_eval(energy, gfn_model).to(device)
+  File "energy_sampling/train.py", line 371, in final_eval
+    results = eval_step(final_eval_data, energy, gfn_model, final_eval=True)
+  File "energy_sampling/train.py", line 218, in eval_step
+    metrics['final_eval/mean_log_likelihood'] = 0. if args.mode_fwd == 'pis' else mean_log_likelihood(eval_data,
+  File "/compuworks/anaconda3/envs/gfn_school/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/minkyu/gfn-diffusion/energy_sampling/evaluations.py", line 23, in mean_log_likelihood
+    states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_bwd(data, None, log_reward_fn)
+  File "/home/minkyu/gfn-diffusion/energy_sampling/models/gfn.py", line 217, in get_trajectory_bwd
+    s_ = mean.detach() + var.sqrt().detach() * torch.randn_like(s, device=self.device)
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu!

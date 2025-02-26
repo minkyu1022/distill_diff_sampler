@@ -1,0 +1,7 @@
+{"time":"2025-02-26T11:32:49.674526291+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.7","symlink path":"/home/minkyu/gfn-diffusion/wandb/run-20250226_113249-czfi90ba/logs/debug-core.log"}
+{"time":"2025-02-26T11:32:49.783044465+09:00","level":"INFO","msg":"created new stream","id":"czfi90ba"}
+{"time":"2025-02-26T11:32:49.783089785+09:00","level":"INFO","msg":"stream: started","id":"czfi90ba"}
+{"time":"2025-02-26T11:32:49.783150725+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"czfi90ba"}
+{"time":"2025-02-26T11:32:49.783371656+09:00","level":"INFO","msg":"handler: started","stream_id":"czfi90ba"}
+{"time":"2025-02-26T11:32:49.783404777+09:00","level":"INFO","msg":"sender: started","stream_id":"czfi90ba"}
+{"time":"2025-02-26T11:32:50.074109526+09:00","level":"INFO","msg":"Starting system monitor"}

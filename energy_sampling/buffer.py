@@ -79,7 +79,7 @@ def collate(data_list):
 
     return sample_data, reward_data
 
-    
+
 
 class ReplayBuffer():
     def __init__(self, buffer_size, device, log_reward, batch_size, data_ndim=2, beta=1.0, rank_weight=1e-2, prioritized=None):
@@ -94,7 +94,8 @@ class ReplayBuffer():
         self.log_reward = log_reward
         self.beta = beta
         self.rank_weight = rank_weight
-        self.beta = beta
+        self.beta = beta    
+        
     def add(self, samples,log_r):
         if self.reward_dataset is None:
             self.reward_dataset = RewardDataset(log_r.detach())
@@ -105,11 +106,12 @@ class ReplayBuffer():
             self.sample_dataset.update(samples.detach())
             self.reward_dataset.update(log_r.detach())
 
-
+        # Keep the buffer size in check
         
         if self.reward_dataset.__len__() > self.buffer_size:
             self.reward_dataset.deque(self.reward_dataset.__len__() - self.buffer_size)
             self.sample_dataset.deque(self.sample_dataset.__len__() - self.buffer_size)
+            
         if self.prioritized == 'rank':
             self.scores_np = self.reward_dataset.get_tsrs().detach().cpu().view(-1).numpy()
             ranks = np.argsort(np.argsort(-1 * self.scores_np))
@@ -140,6 +142,7 @@ class ReplayBuffer():
                 collate_fn=collate,
                 drop_last=True
                 )
+            
         # check if we have any additional samples before updating the buffer and the scorer!
 
 
@@ -152,3 +155,23 @@ class ReplayBuffer():
             sample, reward = next(self.data_iter)
             
         return sample.detach(), reward.detach()
+    
+    
+    # def __getstate__(self):
+    #     state = self.__dict__.copy()
+        
+    #     for attr in ['loader', 'data_iter', 'sampler', 'dataset']:
+    #         if attr in state:
+    #             del state[attr]
+                
+    #     return state
+    
+    
+    # def __setstate__(self, state):
+    #     self.__dict__.update(state)
+    #     # After loading, these attributes will be missing.
+    #     # You may need to rebuild them before using the buffer for sampling.
+    #     self.dataset = None
+    #     self.sampler = None
+    #     self.loader = None
+    #     self.data_iter = None

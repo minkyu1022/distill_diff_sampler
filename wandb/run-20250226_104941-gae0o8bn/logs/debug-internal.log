@@ -1,0 +1,7 @@
+{"time":"2025-02-26T10:49:41.950674699+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.7","symlink path":"/home/minkyu/gfn-diffusion/wandb/run-20250226_104941-gae0o8bn/logs/debug-core.log"}
+{"time":"2025-02-26T10:49:42.059730867+09:00","level":"INFO","msg":"created new stream","id":"gae0o8bn"}
+{"time":"2025-02-26T10:49:42.059787567+09:00","level":"INFO","msg":"stream: started","id":"gae0o8bn"}
+{"time":"2025-02-26T10:49:42.059845907+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"gae0o8bn"}
+{"time":"2025-02-26T10:49:42.059887627+09:00","level":"INFO","msg":"handler: started","stream_id":"gae0o8bn"}
+{"time":"2025-02-26T10:49:42.059983047+09:00","level":"INFO","msg":"sender: started","stream_id":"gae0o8bn"}
+{"time":"2025-02-26T10:49:42.604731958+09:00","level":"INFO","msg":"Starting system monitor"}

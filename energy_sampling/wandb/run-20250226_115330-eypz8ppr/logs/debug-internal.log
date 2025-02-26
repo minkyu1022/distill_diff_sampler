@@ -1,0 +1,15 @@
+{"time":"2025-02-26T11:53:30.60845853+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.7","symlink path":"/home/minkyu/gfn-diffusion/energy_sampling/wandb/run-20250226_115330-eypz8ppr/logs/debug-core.log"}
+{"time":"2025-02-26T11:53:30.717815014+09:00","level":"INFO","msg":"created new stream","id":"eypz8ppr"}
+{"time":"2025-02-26T11:53:30.717858814+09:00","level":"INFO","msg":"stream: started","id":"eypz8ppr"}
+{"time":"2025-02-26T11:53:30.717926725+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"eypz8ppr"}
+{"time":"2025-02-26T11:53:30.717992665+09:00","level":"INFO","msg":"sender: started","stream_id":"eypz8ppr"}
+{"time":"2025-02-26T11:53:30.717934225+09:00","level":"INFO","msg":"handler: started","stream_id":"eypz8ppr"}
+{"time":"2025-02-26T11:53:31.002039928+09:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-02-26T16:15:05.737160803+09:00","level":"INFO","msg":"stream: closing","id":"eypz8ppr"}
+{"time":"2025-02-26T16:15:05.737225213+09:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-02-26T16:15:05.738223216+09:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-02-26T16:15:06.417375577+09:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-02-26T16:15:06.645008171+09:00","level":"INFO","msg":"handler: closed","stream_id":"eypz8ppr"}
+{"time":"2025-02-26T16:15:06.645072881+09:00","level":"INFO","msg":"sender: closed","stream_id":"eypz8ppr"}
+{"time":"2025-02-26T16:15:06.645059401+09:00","level":"INFO","msg":"writer: Close: closed","stream_id":"eypz8ppr"}
+{"time":"2025-02-26T16:15:06.645211121+09:00","level":"INFO","msg":"stream: closed","id":"eypz8ppr"}
