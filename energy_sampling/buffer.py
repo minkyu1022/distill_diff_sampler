@@ -94,14 +94,14 @@ class ReplayBuffer():
         self.log_reward = log_reward
         self.beta = beta
         self.rank_weight = rank_weight
-        self.beta = beta    
+        # self.sampled_rewards = []
         
     def add(self, samples,log_r):
         if self.reward_dataset is None:
             self.reward_dataset = RewardDataset(log_r.detach())
             self.sample_dataset = SampleDataset(samples.detach())
-            self.sample_dataset.update(samples.detach())
-            self.reward_dataset.update(log_r.detach())
+            # self.sample_dataset.update(samples.detach())
+            # self.reward_dataset.update(log_r.detach())
         else:
             self.sample_dataset.update(samples.detach())
             self.reward_dataset.update(log_r.detach())
@@ -109,8 +109,18 @@ class ReplayBuffer():
         # Keep the buffer size in check
         
         if self.reward_dataset.__len__() > self.buffer_size:
-            self.reward_dataset.deque(self.reward_dataset.__len__() - self.buffer_size)
-            self.sample_dataset.deque(self.sample_dataset.__len__() - self.buffer_size)
+            if self.prioritized == 'rank':
+                scores_np = self.reward_dataset.get_tsrs().detach().cpu().view(-1).numpy()
+                sorted_indices = np.argsort(-1 * scores_np)  # sort in descending order of reward
+                indices_to_keep = sorted_indices[:self.buffer_size]
+                indices_to_keep = np.sort(indices_to_keep)  # optional: sort to maintain original order
+
+                # Update the reward and sample datasets
+                self.reward_dataset.rewards = self.reward_dataset.rewards[torch.tensor(indices_to_keep, device=self.device)]
+                self.sample_dataset.sample_list = self.sample_dataset.sample_list[torch.tensor(indices_to_keep, device=self.device)]
+            else:
+                self.reward_dataset.deque(self.reward_dataset.__len__() - self.buffer_size)
+                self.sample_dataset.deque(self.sample_dataset.__len__() - self.buffer_size)
             
         if self.prioritized == 'rank':
             self.scores_np = self.reward_dataset.get_tsrs().detach().cpu().view(-1).numpy()
@@ -153,6 +163,9 @@ class ReplayBuffer():
         except:
             self.data_iter = iter(self.loader)
             sample, reward = next(self.data_iter)
+            
+        # current_reward_sum = reward.sum().item()
+        # self.sampled_rewards.append(current_reward_sum)
             
         return sample.detach(), reward.detach()
     

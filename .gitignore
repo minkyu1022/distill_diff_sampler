@@ -1,0 +1,7 @@
+wandb/
+results_pis_architectures/
+true_data/
+energy_sampling/results_pis_architectures/
+energy_sampling/teacher_buffer/
+energy_sampling/teacher_log_Z/
+energy_sampling/wandb/

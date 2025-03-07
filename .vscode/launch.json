@@ -18,22 +18,52 @@
         "--zero_init",
         "--clipping",
         "--mode_fwd",
-        "pis",
+        "tb",
+        "--langevin",
         "--lr_policy",
         "1e-3",
+        "--lr_flow",
+        "1e-1",
         "--epochs",
         "100",
-        "--langevin",
-        "--save_buffer_path",
-        "buffer_PIS+LP.pt",
       ],
       "console": "integratedTerminal",
       "env": {
-        "CUDA_VISIBLE_DEVICES": "2"
+        "CUDA_VISIBLE_DEVICES": "0"
       }
     },
     {
-      "name": "save buffer",
+      "name": "teacher",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "energy_sampling/train.py",
+      "args": [
+        "--t_scale",
+        "1.",
+        "--energy",
+        "many_well",
+        "--pis_architectures",
+        "--zero_init",
+        "--clipping",
+        "--mode_fwd",
+        "pis",
+        "--lr_policy",
+        "1e-3",
+        "--langevin",
+        "--epochs",
+        "100",
+        "--save_buffer",
+        "PIS_LP.pt",
+        "--save_log_Z",
+        "PIS_LP.pt"
+      ],
+      "console": "integratedTerminal",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "3"
+      }
+    },
+    {
+      "name": "student",
       "type": "debugpy",
       "request": "launch",
       "program": "energy_sampling/train.py",
@@ -49,47 +79,27 @@
         "tb",
         "--mode_bwd",
         "tb",
-        "--lr_policy",
-        "1e-3",
         "--both_ways",
-        "--langevin",
-        "--epochs",
-        "100",
-        "--save_buffer_path",
-        "buffer_TB+LP_both.pt",
-      ],
-      "console": "integratedTerminal",
-      "env": {
-        "CUDA_VISIBLE_DEVICES": "3"
-      }
-    },
-    {
-      "name": "load buffer",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "energy_sampling/train.py",
-      "args": [
-        "--t_scale",
-        "1.",
-        "--energy",
-        "many_well",
-        "--pis_architectures",
-        "--zero_init",
-        "--clipping",
-        "--mode_bwd",
-        "tb",
         "--lr_policy",
         "1e-3",
         "--lr_flow",
-        "1e-1",
+        "1e-3",
         "--epochs",
         "100",
-        "--load_buffer_path",
-        "buffer_TB+LP_fwd.pt",
+        "--load_buffer",
+        "TB_LP_fwd.pt",
+        "--load_log_Z",
+        "TB_LP_fwd.pt",
+        "--hidden_dim",
+        "128",
+        "--s_emb_dim",
+        "128",
+        "--t_emb_dim",
+        "128",
       ],
       "console": "integratedTerminal",
       "env": {
-        "CUDA_VISIBLE_DEVICES": "0"
+        "CUDA_VISIBLE_DEVICES": "1"
       }
     }
   ]

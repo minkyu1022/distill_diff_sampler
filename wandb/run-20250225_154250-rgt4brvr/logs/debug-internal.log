@@ -1,7 +1,0 @@
-{"time":"2025-02-25T15:42:50.838471749+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.7","symlink path":"/home/minkyu/gfn-diffusion/wandb/run-20250225_154250-rgt4brvr/logs/debug-core.log"}
-{"time":"2025-02-25T15:42:50.94723101+09:00","level":"INFO","msg":"created new stream","id":"rgt4brvr"}
-{"time":"2025-02-25T15:42:50.94727294+09:00","level":"INFO","msg":"stream: started","id":"rgt4brvr"}
-{"time":"2025-02-25T15:42:50.94734931+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"rgt4brvr"}
-{"time":"2025-02-25T15:42:50.94738636+09:00","level":"INFO","msg":"sender: started","stream_id":"rgt4brvr"}
-{"time":"2025-02-25T15:42:50.94742797+09:00","level":"INFO","msg":"handler: started","stream_id":"rgt4brvr"}
-{"time":"2025-02-25T15:42:51.242057568+09:00","level":"INFO","msg":"Starting system monitor"}

@@ -1,7 +1,0 @@
-{"time":"2025-02-24T16:18:35.413469687+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.7","symlink path":"/home/minkyu/gfn-diffusion/energy_sampling/wandb/run-20250224_161835-jobtonb2/logs/debug-core.log"}
-{"time":"2025-02-24T16:18:35.523371211+09:00","level":"INFO","msg":"created new stream","id":"jobtonb2"}
-{"time":"2025-02-24T16:18:35.523437521+09:00","level":"INFO","msg":"stream: started","id":"jobtonb2"}
-{"time":"2025-02-24T16:18:35.523458681+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"jobtonb2"}
-{"time":"2025-02-24T16:18:35.523524171+09:00","level":"INFO","msg":"sender: started","stream_id":"jobtonb2"}
-{"time":"2025-02-24T16:18:35.523550651+09:00","level":"INFO","msg":"handler: started","stream_id":"jobtonb2"}
-{"time":"2025-02-24T16:18:35.825669313+09:00","level":"INFO","msg":"Starting system monitor"}

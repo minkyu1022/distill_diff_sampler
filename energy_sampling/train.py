@@ -23,10 +23,14 @@ parser = argparse.ArgumentParser(description='GFN Linear Regression')
 # parser.add_argument('--phase', type=str, default="forward",
 #                     choices=["forward", "backward"],
 #                     help="Choose 'forward' to run TB+LP and collect samples, 'backward' to run TB using loaded samples.")
-parser.add_argument('--save_buffer_path', type=str, default=None,
-                    help="Path to save the replay buffer after TB+LP forward training.")
-parser.add_argument('--load_buffer_path', type=str, default=None,
-                    help="Path to load a pre-saved replay buffer for backward TB training.")
+parser.add_argument('--save_buffer', type=str, default=None,
+                    help="File name to save the replay buffer after teacher training.")
+parser.add_argument('--save_log_Z', type=str, default=None,
+                    help="File name to save leared log_Z after teacher training.")
+parser.add_argument('--load_buffer', type=str, default=None,
+                    help="File name to load a pre-saved replay buffer for student training.")
+parser.add_argument('--load_log_Z', type=str, default=None,
+                    help="File name to load a pre-saved log_Z for student training.")
 
 # Distillation =====
 
@@ -45,7 +49,7 @@ parser.add_argument('--subtb_lambda', type=int, default=2)
 parser.add_argument('--t_scale', type=float, default=5.)
 parser.add_argument('--log_var_range', type=float, default=4.)
 parser.add_argument('--energy', type=str, default='9gmm',
-                    choices=('9gmm', '25gmm', 'hard_funnel', 'easy_funnel', 'many_well'))
+                    choices=('9gmm', '25gmm', '40gmm', 'hard_funnel', 'easy_funnel', 'many_well_32', 'many_well_64', 'many_well_128', 'many_well_512'))
 parser.add_argument('--mode_fwd', type=str, default='None', choices=('tb', 'tb-avg', 'db', 'subtb', "pis"))
 parser.add_argument('--mode_bwd', type=str, default='None', choices=('tb', 'tb-avg', 'mle'))
 parser.add_argument('--both_ways', action='store_true', default=False)
@@ -142,17 +146,26 @@ def get_energy():
         energy = NineGaussianMixture(device=device)
     elif args.energy == '25gmm':
         energy = TwentyFiveGaussianMixture(device=device)
+    elif args.energy == '40gmm':
+        energy = FourtyGaussianMixture(device=device)
     elif args.energy == 'hard_funnel':
         energy = HardFunnel(device=device)
     elif args.energy == 'easy_funnel':
         energy = EasyFunnel(device=device)
-    elif args.energy == 'many_well':
-        energy = ManyWell(device=device)
+    elif args.energy == 'many_well_32':
+        energy = ManyWell(device=device, dim=32)
+    elif args.energy == 'many_well_64':
+        energy = ManyWell(device=device, dim=64)
+    elif args.energy == 'many_well_128':
+        energy = ManyWell(device=device, dim=128)
+    elif args.energy == 'many_well_512':
+        energy = ManyWell(device=device, dim=512)
     return energy
 
 
-def plot_step(energy, gfn_model, name):
-    if args.energy == 'many_well':
+def plot_step(energy, gfn_model, buffer, buffer_ls, name):
+    if 'many_well' in args.energy:
+        # Sample figures by model
         batch_size = plot_data_size
         samples = gfn_model.sample(batch_size, energy.log_reward)
 
@@ -167,7 +180,20 @@ def plot_step(energy, gfn_model, name):
 
         fig_contour_x13.savefig(f'{name}contourx13.pdf', bbox_inches='tight')
         fig_contour_x23.savefig(f'{name}contourx23.pdf', bbox_inches='tight')
-
+        
+        # # Sample figures by buffer
+        # batch_buffer_samples, batch_buffer_rewards = buffer.sample()
+        # batch_buffer_vizualizations = viz_many_well(energy, batch_buffer_samples)
+        # fig_batch_buffer_samples_x13, ax_batch_buffer_samples_x13, fig_batch_buffer_kde_x13, ax_batch_buffer_kde_x13, fig_batch_buffer_contour_x13, ax_batch_buffer_contour_x13, fig_batch_buffer_samples_x23, ax_batch_buffer_samples_x23, fig_batch_buffer_kde_x23, ax_batch_buffer_kde_x23, fig_batch_buffer_contour_x23, ax_batch_buffer_contour_x23 = batch_buffer_vizualizations
+        # fig_batch_buffer_contour_x13.savefig(f'{name}batch_buffer_contour_x13.pdf', bbox_inches='tight')
+        # fig_batch_buffer_contour_x23.savefig(f'{name}batch_buffer_contour_x23.pdf', bbox_inches='tight')
+        
+        # buffer_samples = buffer.sample_dataset.get_seq()
+        # buffer_vizualizations = viz_many_well(energy, buffer_samples)
+        # fig_buffer_samples_x13, ax_buffer_samples_x13, fig_buffer_kde_x13, ax_buffer_kde_x13, fig_buffer_contour_x13, ax_buffer_contour_x13, fig_buffer_samples_x23, ax_buffer_samples_x23, fig_buffer_kde_x23, ax_buffer_kde_x23, fig_buffer_contour_x23, ax_buffer_contour_x23 = buffer_vizualizations
+        # fig_buffer_contour_x13.savefig(f'{name}buffer_contour_x13.pdf', bbox_inches='tight')
+        # fig_buffer_contour_x23.savefig(f'{name}buffer_contour_x23.pdf', bbox_inches='tight')
+        
         return {"visualization/contourx13": wandb.Image(fig_to_image(fig_contour_x13)),
                 "visualization/contourx23": wandb.Image(fig_to_image(fig_contour_x23)),
                 "visualization/kdex13": wandb.Image(fig_to_image(fig_kde_x13)),
@@ -183,15 +209,15 @@ def plot_step(energy, gfn_model, name):
         samples = gfn_model.sample(batch_size, energy.log_reward)
         gt_samples = energy.sample(batch_size)
 
-        fig_contour, ax_contour = get_figure(bounds=(-13., 13.))
-        fig_kde, ax_kde = get_figure(bounds=(-13., 13.))
-        fig_kde_overlay, ax_kde_overlay = get_figure(bounds=(-13., 13.))
+        fig_contour, ax_contour = get_figure(bounds=(-50., 50.))
+        fig_kde, ax_kde = get_figure(bounds=(-50., 50.))
+        fig_kde_overlay, ax_kde_overlay = get_figure(bounds=(-50., 50.))
 
-        plot_contours(energy.log_reward, ax=ax_contour, bounds=(-13., 13.), n_contour_levels=150, device=device)
-        plot_kde(gt_samples, ax=ax_kde_overlay, bounds=(-13., 13.))
-        plot_kde(samples, ax=ax_kde, bounds=(-13., 13.))
-        plot_samples(samples, ax=ax_contour, bounds=(-13., 13.))
-        plot_samples(samples, ax=ax_kde_overlay, bounds=(-13., 13.))
+        plot_contours(energy.log_reward, ax=ax_contour, bounds=(-50., 50.), n_contour_levels=50, device=device)
+        plot_kde(gt_samples, ax=ax_kde_overlay, bounds=(-50., 50.))
+        plot_kde(samples, ax=ax_kde, bounds=(-50., 50.))
+        plot_samples(samples, ax=ax_contour, bounds=(-50., 50.))
+        plot_samples(samples, ax=ax_kde_overlay, bounds=(-50., 50.))
 
         fig_contour.savefig(f'{name}contour.pdf', bbox_inches='tight')
         fig_kde_overlay.savefig(f'{name}kde_overlay.pdf', bbox_inches='tight')
@@ -207,12 +233,12 @@ def eval_step(eval_data, energy, gfn_model, final_eval=False):
     metrics = dict()
     if final_eval:
         init_state = torch.zeros(final_eval_data_size, energy.data_ndim).to(device)
-        samples, metrics['final_eval/log_Z'], metrics['final_eval/log_Z_lb'], metrics[
+        samples, metrics['final_eval/log_Z_IS'], metrics['final_eval/ELBO'], metrics[
             'final_eval/log_Z_learned'] = log_partition_function(
             init_state, gfn_model, energy.log_reward)
     else:
         init_state = torch.zeros(eval_data_size, energy.data_ndim).to(device)
-        samples, metrics['eval/log_Z'], metrics['eval/log_Z_lb'], metrics[
+        samples, metrics['eval/log_Z_IS'], metrics['eval/ELBO'], metrics[
             'eval/log_Z_learned'] = log_partition_function(
             init_state, gfn_model, energy.log_reward)
             
@@ -229,7 +255,7 @@ def eval_step(eval_data, energy, gfn_model, final_eval=False):
             metrics['eval/mean_log_likelihood'] = 0. if args.mode_fwd == 'pis' else mean_log_likelihood(eval_data,
                                                                                                         gfn_model,
                                                                                                         energy.log_reward)
-            metrics['eval_eval/EUBO'] = EUBO(eval_data, gfn_model, energy.log_reward)
+            metrics['eval/EUBO'] = EUBO(eval_data, gfn_model, energy.log_reward)
         metrics.update(get_sample_metrics(samples, eval_data, final_eval))
     gfn_model.train()
     return metrics
@@ -244,7 +270,7 @@ def train_step(energy, gfn_model, gfn_optimizer, it, exploratory, buffer, buffer
         if it % 2 == 0:
             if args.sampling == 'buffer':
                 loss, states, _, _, log_r  = fwd_train_step(energy, gfn_model, exploration_std, return_exp=True)
-                buffer.add(states[:, -1],log_r)
+                # buffer.add(states[:, -1],log_r)
             else:
                 loss = fwd_train_step(energy, gfn_model, exploration_std)
         else:
@@ -311,23 +337,41 @@ def train():
                     conditional_flow_model=args.conditional_flow_model, learn_pb=args.learn_pb,
                     pis_architectures=args.pis_architectures, lgv_layers=args.lgv_layers,
                     joint_layers=args.joint_layers, zero_init=args.zero_init, device=device).to(device)
-
+    
+    if args.load_log_Z is not None:
+        # Load the learned log_Z
+        load_dir_log_Z = "energy_sampling/teacher_log_Z"
+        load_log_Z_path = os.path.join(load_dir_log_Z, args.energy, args.load_log_Z)
+        print("Loading log_Z from:", load_log_Z_path)
+        
+        teacher_flow_model = torch.load(load_log_Z_path)
+        print("Loaded log_Z:", teacher_flow_model)
+        gfn_model.flow_model = teacher_flow_model
+        
+        # # Load the tuned lr_flow
+        # load_dir_lr_flow = "energy_sampling/teacher_lr_flow"
+        # load_lr_flow_path = os.path.join(load_dir_lr_flow, args.load_log_Z_path)
+        # print("Loading lr_flow from:", load_lr_flow_path)
+        
+        # teacher_lr_flow = torch.load(load_lr_flow_path)
+        # print("Loaded lr_flow:", teacher_lr_flow)
+        # args.lr_flow = teacher_lr_flow
 
     gfn_optimizer = get_gfn_optimizer(gfn_model, args.lr_policy, args.lr_flow, args.lr_back, args.learn_pb,
                                       args.conditional_flow_model, args.use_weight_decay, args.weight_decay)
-
+    
     print(gfn_model)
     metrics = dict()
 
     # Distillation =====
     
-    if args.load_buffer_path is not None:
+    if args.load_buffer is not None:
         
         load_dir = "energy_sampling/teacher_buffer"
-        args.load_buffer_path = os.path.join(load_dir, args.load_buffer_path)
+        load_buffer_path = os.path.join(load_dir, args.energy, args.load_buffer)
         
-        print("Loading replay buffer from:", args.load_buffer_path)
-        buffer_data = torch.load(args.load_buffer_path)
+        print("Loading replay buffer from:", load_buffer_path)
+        buffer_data = torch.load(load_buffer_path)
         
         buffer = ReplayBuffer(args.buffer_size, device, energy.log_reward, args.batch_size,
                             data_ndim=energy.data_ndim, beta=args.beta,
@@ -349,6 +393,13 @@ def train():
                             rank_weight=args.rank_weight, prioritized=args.prioritized)
         
     # Distilaltion =====
+    
+    # # True buffer samples
+    # true_sample_dir = os.path.join("true_data", args.energy, "samples.pt")
+    # true_reward_dir = os.path.join("true_data", args.energy, "rewards.pt")
+    # true_buffer_samples = torch.load(true_sample_dir)
+    # true_buffer_rewards = torch.load(true_reward_dir)
+    # buffer.add(true_buffer_samples, true_buffer_rewards)
 
     
     # buffer = ReplayBuffer(args.buffer_size, device, energy.log_reward,args.batch_size, data_ndim=energy.data_ndim, beta=args.beta,
@@ -365,7 +416,7 @@ def train():
             metrics.update(eval_step(eval_data, energy, gfn_model, final_eval=False))
             if 'tb-avg' in args.mode_fwd or 'tb-avg' in args.mode_bwd:
                 del metrics['eval/log_Z_learned']
-            images = plot_step(energy, gfn_model, name)
+            images = plot_step(energy, gfn_model, buffer, buffer_ls, name)
             metrics.update(images)
             plt.close('all')
             wandb.log(metrics, step=i)
@@ -384,20 +435,47 @@ def train():
     
     # Distillation =====
     
-    if args.save_buffer_path is not None:
+    if args.save_buffer is not None:
         teacher_knowledge = {
             'samples': buffer.sample_dataset.get_seq(),
             'rewards': buffer.reward_dataset.get_tsrs(),
         }
         
-        save_dir = "energy_sampling/teacher_buffer"
+        save_dir = os.path.join("energy_sampling/teacher_buffer", args.energy)
         os.makedirs(save_dir, exist_ok=True)
         
-        args.save_buffer_path = os.path.join(save_dir, args.save_buffer_path)
+        save_buffer_path = os.path.join(save_dir, args.save_buffer)
         
-        torch.save(teacher_knowledge, args.save_buffer_path)
+        torch.save(teacher_knowledge, save_buffer_path)
         
-        print("Replay buffer saved to", args.save_buffer_path)
+        print("Replay buffer saved to", save_buffer_path)
+    
+    if args.save_log_Z is not None:
+        # Save the learned log_Z
+        save_dir_log_Z = os.path.join("energy_sampling/teacher_log_Z", args.energy)
+        os.makedirs(save_dir_log_Z, exist_ok=True)
+        save_log_Z_path = os.path.join(save_dir_log_Z, args.save_log_Z)
+        
+        torch.save(gfn_model.flow_model, save_log_Z_path)
+        print("Learned log_Z:", gfn_model.flow_model.item())
+        print("Learned log_Z saved to", save_log_Z_path)
+        
+        # # Save the tuned lr_flow
+        # lr_flow_final = None
+        # for group in gfn_optimizer.param_groups:
+        #     if group.get('params') == [gfn_model.flow_model]:
+        #         lr_flow_final = group['lr']
+        #         break
+        # print("Final lr_flow:", lr_flow_final)
+        
+        # save_dir_lr_flow = "energy_sampling/teacher_lr_flow"
+        # os.makedirs(save_dir_lr_flow, exist_ok=True)
+        # save_lr_flow_path = os.path.join(save_dir_lr_flow, args.energy, args.save_log_Z)
+        # torch.save(lr_flow_final, save_lr_flow_path)
+        
+        # print("Tuned lr_flow saved to", save_lr_flow_path)
+        
+    # torch.save(buffer.sampled_rewards, "sampled_rewards.pt")
         
     # Distillation =====
 

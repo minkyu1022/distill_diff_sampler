@@ -30,7 +30,7 @@ class ManyWell(BaseSet):
     """
     log p(x1, x2) = −x1^4 + 6*x1^2 + 1/2*x1 − 1/2*x2^2 + constant
     """
-    def __init__(self, device, dim=32, is_linear=True):
+    def __init__(self, device, dim=128, is_linear=True):
         super().__init__()
         self.device = device
 
@@ -65,9 +65,15 @@ class ManyWell(BaseSet):
 
     def manywell_logprob(self, x):
         assert x.ndim == 2
-        logprob = torch.stack(
-            [self.doublewell_logprob(x[:, i*2:i*2+2]) for i in range(self.n_wells)],
-        dim=1).sum(dim=1)
+        assert x.shape[-1] == self.ndim
+        
+        # logprob = torch.stack(
+        #     [self.doublewell_logprob(x[:, i*2:i*2+2]) for i in range(self.n_wells)],
+        # dim=1).sum(dim=1)
+        
+        batch_size = x.shape[:-1]
+        x = x.reshape(-1,2)
+        logprob = self.doublewell_logprob(x).view(*batch_size, self.n_wells).sum(dim=-1)
         return logprob
 
     def sample_first_dimension(self, batch_size):

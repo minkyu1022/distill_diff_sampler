@@ -9,11 +9,11 @@ def log_partition_function(initial_state, gfn, log_reward_fn):
     log_r = log_reward_fn(states[:, -1])
     log_weight = log_r + log_pbs.sum(-1) - log_pfs.sum(-1)
 
-    log_Z = logmeanexp(log_weight)
+    log_Z_IS = logmeanexp(log_weight)
     log_Z_lb = log_weight.mean()
     log_Z_learned = log_fs[:, 0].mean()
 
-    return states[:, -1], log_Z, log_Z_lb, log_Z_learned
+    return states[:, -1], log_Z_IS, log_Z_lb, log_Z_learned
 
 
 @torch.no_grad()
