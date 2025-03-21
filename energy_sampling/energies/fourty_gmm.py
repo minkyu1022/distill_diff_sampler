@@ -62,17 +62,20 @@ class FourtyGaussianMixture(BaseSet):
         mix = D.Categorical(torch.ones(nmode).to(self.device))
         self.gmm = MixtureSameFamily(mix, comp)
         self.data_ndim = dim
+        
+        self.energy_call_count = 0
 
     def gt_logz(self):
         return 0.
 
     def energy(self, x):
+        self.energy_call_count += 1
         return -self.gmm.log_prob(x).flatten()
 
     def sample(self, batch_size):
         return self.gmm.sample((batch_size,))
 
-    def viz_pdf(self, fsave="density.png"):
+    def viz_pdf(self, fsave="40gmm-density.png"):
         raise NotImplementedError
 
     def __getitem__(self, idx):

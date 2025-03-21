@@ -30,7 +30,7 @@ class ManyWell(BaseSet):
     """
     log p(x1, x2) = −x1^4 + 6*x1^2 + 1/2*x1 − 1/2*x2^2 + constant
     """
-    def __init__(self, device, dim=128, is_linear=True):
+    def __init__(self, device, dim=32, is_linear=True):
         super().__init__()
         self.device = device
 
@@ -48,11 +48,15 @@ class ManyWell(BaseSet):
         self.Z_x1 = 11784.50927
         self.logZ_x2 = 0.5 * np.log(2 * np.pi)
         self.logZ_doublewell = np.log(self.Z_x1) + self.logZ_x2
+        
+        # Counter for energy function calls
+        self.energy_call_count = 0
 
     def gt_logz(self):
         return self.n_wells * self.logZ_doublewell
 
     def energy(self, x):
+        self.energy_call_count += 1
         return -self.manywell_logprob(x)
 
     def doublewell_logprob(self, x):

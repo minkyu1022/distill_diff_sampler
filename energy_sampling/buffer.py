@@ -109,18 +109,21 @@ class ReplayBuffer():
         # Keep the buffer size in check
         
         if self.reward_dataset.__len__() > self.buffer_size:
-            if self.prioritized == 'rank':
-                scores_np = self.reward_dataset.get_tsrs().detach().cpu().view(-1).numpy()
-                sorted_indices = np.argsort(-1 * scores_np)  # sort in descending order of reward
-                indices_to_keep = sorted_indices[:self.buffer_size]
-                indices_to_keep = np.sort(indices_to_keep)  # optional: sort to maintain original order
+            # if self.prioritized == 'rank':
+            #     scores_np = self.reward_dataset.get_tsrs().detach().cpu().view(-1).numpy()
+            #     sorted_indices = np.argsort(-1 * scores_np)  # sort in descending order of reward
+            #     indices_to_keep = sorted_indices[:self.buffer_size]
+            #     indices_to_keep = np.sort(indices_to_keep)  # optional: sort to maintain original order
 
-                # Update the reward and sample datasets
-                self.reward_dataset.rewards = self.reward_dataset.rewards[torch.tensor(indices_to_keep, device=self.device)]
-                self.sample_dataset.sample_list = self.sample_dataset.sample_list[torch.tensor(indices_to_keep, device=self.device)]
-            else:
-                self.reward_dataset.deque(self.reward_dataset.__len__() - self.buffer_size)
-                self.sample_dataset.deque(self.sample_dataset.__len__() - self.buffer_size)
+            #     # Update the reward and sample datasets
+            #     self.reward_dataset.rewards = self.reward_dataset.rewards[torch.tensor(indices_to_keep, device=self.device)]
+            #     self.sample_dataset.sample_list = self.sample_dataset.sample_list[torch.tensor(indices_to_keep, device=self.device)]
+            # else:
+            #     self.reward_dataset.deque(self.reward_dataset.__len__() - self.buffer_size)
+            #     self.sample_dataset.deque(self.sample_dataset.__len__() - self.buffer_size)
+            
+            self.reward_dataset.deque(self.reward_dataset.__len__() - self.buffer_size)
+            self.sample_dataset.deque(self.sample_dataset.__len__() - self.buffer_size)
             
         if self.prioritized == 'rank':
             self.scores_np = self.reward_dataset.get_tsrs().detach().cpu().view(-1).numpy()

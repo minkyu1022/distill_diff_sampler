@@ -11,28 +11,25 @@ from models import GFN
 from gflownet_losses import *
 from energies import *
 from evaluations import *
+from models.ais import annealed_IS_langevin
 
 import matplotlib.pyplot as plt
 from tqdm import trange
+from tqdm import tqdm
+
 import wandb
+
 
 parser = argparse.ArgumentParser(description='GFN Linear Regression')
 
-# Distillation =====
-
-# parser.add_argument('--phase', type=str, default="forward",
-#                     choices=["forward", "backward"],
-#                     help="Choose 'forward' to run TB+LP and collect samples, 'backward' to run TB using loaded samples.")
-parser.add_argument('--save_buffer', type=str, default=None,
-                    help="File name to save the replay buffer after teacher training.")
-parser.add_argument('--save_log_Z', type=str, default=None,
-                    help="File name to save leared log_Z after teacher training.")
-parser.add_argument('--load_buffer', type=str, default=None,
-                    help="File name to load a pre-saved replay buffer for student training.")
-parser.add_argument('--load_log_Z', type=str, default=None,
-                    help="File name to load a pre-saved log_Z for student training.")
-
-# Distillation =====
+parser.add_argument('--round', type=int, default="1",
+                    help="The number of rounds to run teacher-student distillation.")
+parser.add_argument('--teacher', type=str, default="mala",
+                    choices=('mala', 'ais'),
+                    help="Type of teacher sampler.")
+parser.add_argument('--teacher_prior', type=str, default="gaussian",
+                    choices=('dirac', 'gaussian'),
+                    help="Type of prior distribution.")
 
 parser.add_argument('--lr_policy', type=float, default=1e-3)
 parser.add_argument('--lr_flow', type=float, default=1e-2)
@@ -43,7 +40,7 @@ parser.add_argument('--t_emb_dim', type=int, default=64)
 parser.add_argument('--harmonics_dim', type=int, default=64)
 parser.add_argument('--batch_size', type=int, default=300)
 parser.add_argument('--epochs', type=int, default=25000)
-parser.add_argument('--buffer_size', type=int, default=300 * 1000 * 2)
+parser.add_argument('--buffer_size', type=int, default=600000)
 parser.add_argument('--T', type=int, default=100)
 parser.add_argument('--subtb_lambda', type=int, default=2)
 parser.add_argument('--t_scale', type=float, default=5.)
@@ -59,16 +56,16 @@ parser.add_argument('--both_ways', action='store_true', default=False)
 parser.add_argument('--local_search', action='store_true', default=False)
 
 # How many iterations to run local search
-parser.add_argument('--max_iter_ls', type=int, default=200)
+parser.add_argument('--max_iter_ls', type=int, default=4000)
 
 # How many iterations to burn in before making local search
-parser.add_argument('--burn_in', type=int, default=100)
+parser.add_argument('--burn_in', type=int, default=2000)
 
 # How frequently to make local search
 parser.add_argument('--ls_cycle', type=int, default=100)
 
 # langevin step size
-parser.add_argument('--ld_step', type=float, default=0.001)
+parser.add_argument('--ld_step', type=float, default=0.01)
 
 parser.add_argument('--ld_schedule', action='store_true', default=False)
 
@@ -162,6 +159,15 @@ def get_energy():
         energy = ManyWell(device=device, dim=512)
     return energy
 
+def get_prior(dim):
+    if args.teacher_prior == 'dirac':
+        prior = None
+    elif args.teacher_prior == 'gaussian':
+        prior = Gaussian(device=device, dim=energy.data_ndim, std=1.0)
+    else:
+        raise ValueError(f"Invalid prior: {args.teacher_prior}")
+    
+    return prior
 
 def plot_step(energy, gfn_model, buffer, buffer_ls, name):
     if 'many_well' in args.energy:
@@ -181,19 +187,6 @@ def plot_step(energy, gfn_model, buffer, buffer_ls, name):
         fig_contour_x13.savefig(f'{name}contourx13.pdf', bbox_inches='tight')
         fig_contour_x23.savefig(f'{name}contourx23.pdf', bbox_inches='tight')
         
-        # # Sample figures by buffer
-        # batch_buffer_samples, batch_buffer_rewards = buffer.sample()
-        # batch_buffer_vizualizations = viz_many_well(energy, batch_buffer_samples)
-        # fig_batch_buffer_samples_x13, ax_batch_buffer_samples_x13, fig_batch_buffer_kde_x13, ax_batch_buffer_kde_x13, fig_batch_buffer_contour_x13, ax_batch_buffer_contour_x13, fig_batch_buffer_samples_x23, ax_batch_buffer_samples_x23, fig_batch_buffer_kde_x23, ax_batch_buffer_kde_x23, fig_batch_buffer_contour_x23, ax_batch_buffer_contour_x23 = batch_buffer_vizualizations
-        # fig_batch_buffer_contour_x13.savefig(f'{name}batch_buffer_contour_x13.pdf', bbox_inches='tight')
-        # fig_batch_buffer_contour_x23.savefig(f'{name}batch_buffer_contour_x23.pdf', bbox_inches='tight')
-        
-        # buffer_samples = buffer.sample_dataset.get_seq()
-        # buffer_vizualizations = viz_many_well(energy, buffer_samples)
-        # fig_buffer_samples_x13, ax_buffer_samples_x13, fig_buffer_kde_x13, ax_buffer_kde_x13, fig_buffer_contour_x13, ax_buffer_contour_x13, fig_buffer_samples_x23, ax_buffer_samples_x23, fig_buffer_kde_x23, ax_buffer_kde_x23, fig_buffer_contour_x23, ax_buffer_contour_x23 = buffer_vizualizations
-        # fig_buffer_contour_x13.savefig(f'{name}buffer_contour_x13.pdf', bbox_inches='tight')
-        # fig_buffer_contour_x23.savefig(f'{name}buffer_contour_x23.pdf', bbox_inches='tight')
-        
         return {"visualization/contourx13": wandb.Image(fig_to_image(fig_contour_x13)),
                 "visualization/contourx23": wandb.Image(fig_to_image(fig_contour_x23)),
                 "visualization/kdex13": wandb.Image(fig_to_image(fig_kde_x13)),
@@ -203,8 +196,31 @@ def plot_step(energy, gfn_model, buffer, buffer_ls, name):
 
     elif energy.data_ndim != 2:
         return {}
+    
+    elif args.energy == '25gmm':
+        batch_size = plot_data_size
+        samples = gfn_model.sample(batch_size, energy.log_reward)
+        gt_samples = energy.sample(batch_size)
 
-    else:
+        fig_contour, ax_contour = get_figure(bounds=(-20., 20.))
+        fig_kde, ax_kde = get_figure(bounds=(-20., 20.))
+        fig_kde_overlay, ax_kde_overlay = get_figure(bounds=(-20., 20.))
+
+        plot_contours(energy.log_reward, ax=ax_contour, bounds=(-20., 20.), n_contour_levels=50, device=device)
+        plot_kde(gt_samples, ax=ax_kde_overlay, bounds=(-20., 20.))
+        plot_kde(samples, ax=ax_kde, bounds=(-20., 20.))
+        plot_samples(samples, ax=ax_contour, bounds=(-20., 20.))
+        plot_samples(samples, ax=ax_kde_overlay, bounds=(-20., 20.))
+
+        fig_contour.savefig(f'{name}contour.pdf', bbox_inches='tight')
+        fig_kde_overlay.savefig(f'{name}kde_overlay.pdf', bbox_inches='tight')
+        fig_kde.savefig(f'{name}kde.pdf', bbox_inches='tight')
+        # return None
+        return {"visualization/contour": wandb.Image(fig_to_image(fig_contour)),
+                "visualization/kde_overlay": wandb.Image(fig_to_image(fig_kde_overlay)),
+                "visualization/kde": wandb.Image(fig_to_image(fig_kde))}
+
+    elif args.energy == '40gmm':
         batch_size = plot_data_size
         samples = gfn_model.sample(batch_size, energy.log_reward)
         gt_samples = energy.sample(batch_size)
@@ -218,6 +234,29 @@ def plot_step(energy, gfn_model, buffer, buffer_ls, name):
         plot_kde(samples, ax=ax_kde, bounds=(-50., 50.))
         plot_samples(samples, ax=ax_contour, bounds=(-50., 50.))
         plot_samples(samples, ax=ax_kde_overlay, bounds=(-50., 50.))
+
+        fig_contour.savefig(f'{name}contour.pdf', bbox_inches='tight')
+        fig_kde_overlay.savefig(f'{name}kde_overlay.pdf', bbox_inches='tight')
+        fig_kde.savefig(f'{name}kde.pdf', bbox_inches='tight')
+        # return None
+        return {"visualization/contour": wandb.Image(fig_to_image(fig_contour)),
+                "visualization/kde_overlay": wandb.Image(fig_to_image(fig_kde_overlay)),
+                "visualization/kde": wandb.Image(fig_to_image(fig_kde))}
+    
+    else:
+        batch_size = plot_data_size
+        samples = gfn_model.sample(batch_size, energy.log_reward)
+        gt_samples = energy.sample(batch_size)
+
+        fig_contour, ax_contour = get_figure(bounds=(-13., 13.))
+        fig_kde, ax_kde = get_figure(bounds=(-13., 13.))
+        fig_kde_overlay, ax_kde_overlay = get_figure(bounds=(-13., 13.))
+
+        plot_contours(energy.log_reward, ax=ax_contour, bounds=(-13., 13.), n_contour_levels=150, device=device)
+        plot_kde(gt_samples, ax=ax_kde_overlay, bounds=(-13., 13.))
+        plot_kde(samples, ax=ax_kde, bounds=(-13., 13.))
+        plot_samples(samples, ax=ax_contour, bounds=(-13., 13.))
+        plot_samples(samples, ax=ax_kde_overlay, bounds=(-13., 13.))
 
         fig_contour.savefig(f'{name}contour.pdf', bbox_inches='tight')
         fig_kde_overlay.savefig(f'{name}kde_overlay.pdf', bbox_inches='tight')
@@ -316,17 +355,10 @@ def bwd_train_step(energy, gfn_model, buffer, buffer_ls, exploration_std=None, i
     return loss
 
 
-def train():
-    name = get_name(args)
-    if not os.path.exists(name):
-        os.makedirs(name)
-
-    energy = get_energy()
+def train(energy, buffer, buffer_ls, teacher_flow, name, step_offset):
+  
+    energy = energy
     eval_data = energy.sample(eval_data_size).to(device)
-
-    config = args.__dict__
-    config["Experiment"] = "{args.energy}"
-    wandb.init(project="GFN Energy", config=config, name=name)
 
     gfn_model = GFN(energy.data_ndim, args.s_emb_dim, args.hidden_dim, args.harmonics_dim, args.t_emb_dim,
                     trajectory_length=args.T, clipping=args.clipping, lgv_clip=args.lgv_clip, gfn_clip=args.gfn_clip,
@@ -338,74 +370,23 @@ def train():
                     pis_architectures=args.pis_architectures, lgv_layers=args.lgv_layers,
                     joint_layers=args.joint_layers, zero_init=args.zero_init, device=device).to(device)
     
-    if args.load_log_Z is not None:
+    if teacher_flow is not None:
         # Load the learned log_Z
-        load_dir_log_Z = "energy_sampling/teacher_log_Z"
-        load_log_Z_path = os.path.join(load_dir_log_Z, args.energy, args.load_log_Z)
-        print("Loading log_Z from:", load_log_Z_path)
+        flow_data = teacher_flow
+        print("Loaded log_Z:", flow_data)
         
-        teacher_flow_model = torch.load(load_log_Z_path)
-        print("Loaded log_Z:", teacher_flow_model)
-        gfn_model.flow_model = teacher_flow_model
+        if not isinstance(flow_data, torch.nn.Parameter):
+            flow_data = torch.nn.Parameter(flow_data)
         
-        # # Load the tuned lr_flow
-        # load_dir_lr_flow = "energy_sampling/teacher_lr_flow"
-        # load_lr_flow_path = os.path.join(load_dir_lr_flow, args.load_log_Z_path)
-        # print("Loading lr_flow from:", load_lr_flow_path)
-        
-        # teacher_lr_flow = torch.load(load_lr_flow_path)
-        # print("Loaded lr_flow:", teacher_lr_flow)
-        # args.lr_flow = teacher_lr_flow
+        gfn_model.flow_model = flow_data
+
 
     gfn_optimizer = get_gfn_optimizer(gfn_model, args.lr_policy, args.lr_flow, args.lr_back, args.learn_pb,
                                       args.conditional_flow_model, args.use_weight_decay, args.weight_decay)
     
     print(gfn_model)
     metrics = dict()
-
-    # Distillation =====
-    
-    if args.load_buffer is not None:
-        
-        load_dir = "energy_sampling/teacher_buffer"
-        load_buffer_path = os.path.join(load_dir, args.energy, args.load_buffer)
-        
-        print("Loading replay buffer from:", load_buffer_path)
-        buffer_data = torch.load(load_buffer_path)
-        
-        buffer = ReplayBuffer(args.buffer_size, device, energy.log_reward, args.batch_size,
-                            data_ndim=energy.data_ndim, beta=args.beta,
-                            rank_weight=args.rank_weight, prioritized=args.prioritized)
-        buffer.add(buffer_data['samples'],buffer_data['rewards'])
-        
-        # (You may also want to create a second buffer (buffer_ls) if required.)
-        buffer_ls = ReplayBuffer(args.buffer_size, device, energy.log_reward, args.batch_size,
-                                data_ndim=energy.data_ndim, beta=args.beta,
-                                rank_weight=args.rank_weight, prioritized=args.prioritized)
-        buffer_ls.add(buffer_data['samples'],buffer_data['rewards'])
-        
-    else:
-        buffer = ReplayBuffer(args.buffer_size, device, energy.log_reward, args.batch_size,
-                            data_ndim=energy.data_ndim, beta=args.beta,
-                            rank_weight=args.rank_weight, prioritized=args.prioritized)
-        buffer_ls = ReplayBuffer(args.buffer_size, device, energy.log_reward, args.batch_size,
-                            data_ndim=energy.data_ndim, beta=args.beta,
-                            rank_weight=args.rank_weight, prioritized=args.prioritized)
-        
-    # Distilaltion =====
-    
-    # # True buffer samples
-    # true_sample_dir = os.path.join("true_data", args.energy, "samples.pt")
-    # true_reward_dir = os.path.join("true_data", args.energy, "rewards.pt")
-    # true_buffer_samples = torch.load(true_sample_dir)
-    # true_buffer_rewards = torch.load(true_reward_dir)
-    # buffer.add(true_buffer_samples, true_buffer_rewards)
-
-    
-    # buffer = ReplayBuffer(args.buffer_size, device, energy.log_reward,args.batch_size, data_ndim=energy.data_ndim, beta=args.beta,
-    #                       rank_weight=args.rank_weight, prioritized=args.prioritized)
-    # buffer_ls = ReplayBuffer(args.buffer_size, device, energy.log_reward,args.batch_size, data_ndim=energy.data_ndim, beta=args.beta,
-    #                       rank_weight=args.rank_weight, prioritized=args.prioritized)
+            
     
     gfn_model.train()
     
@@ -419,7 +400,7 @@ def train():
             images = plot_step(energy, gfn_model, buffer, buffer_ls, name)
             metrics.update(images)
             plt.close('all')
-            wandb.log(metrics, step=i)
+            wandb.log(metrics, step=step_offset+i)
             if i % 1000 == 0:
                 torch.save(gfn_model.state_dict(), f'{name}model.pt')
 
@@ -432,52 +413,11 @@ def train():
         if 'eval/log_Z_learned' in metrics:
           del metrics['eval/log_Z_learned']
     torch.save(gfn_model.state_dict(), f'{name}model_final.pt')
+
+        
+    print("Energy calls for student: ", energy.energy_call_count)
     
-    # Distillation =====
-    
-    if args.save_buffer is not None:
-        teacher_knowledge = {
-            'samples': buffer.sample_dataset.get_seq(),
-            'rewards': buffer.reward_dataset.get_tsrs(),
-        }
-        
-        save_dir = os.path.join("energy_sampling/teacher_buffer", args.energy)
-        os.makedirs(save_dir, exist_ok=True)
-        
-        save_buffer_path = os.path.join(save_dir, args.save_buffer)
-        
-        torch.save(teacher_knowledge, save_buffer_path)
-        
-        print("Replay buffer saved to", save_buffer_path)
-    
-    if args.save_log_Z is not None:
-        # Save the learned log_Z
-        save_dir_log_Z = os.path.join("energy_sampling/teacher_log_Z", args.energy)
-        os.makedirs(save_dir_log_Z, exist_ok=True)
-        save_log_Z_path = os.path.join(save_dir_log_Z, args.save_log_Z)
-        
-        torch.save(gfn_model.flow_model, save_log_Z_path)
-        print("Learned log_Z:", gfn_model.flow_model.item())
-        print("Learned log_Z saved to", save_log_Z_path)
-        
-        # # Save the tuned lr_flow
-        # lr_flow_final = None
-        # for group in gfn_optimizer.param_groups:
-        #     if group.get('params') == [gfn_model.flow_model]:
-        #         lr_flow_final = group['lr']
-        #         break
-        # print("Final lr_flow:", lr_flow_final)
-        
-        # save_dir_lr_flow = "energy_sampling/teacher_lr_flow"
-        # os.makedirs(save_dir_lr_flow, exist_ok=True)
-        # save_lr_flow_path = os.path.join(save_dir_lr_flow, args.energy, args.save_log_Z)
-        # torch.save(lr_flow_final, save_lr_flow_path)
-        
-        # print("Tuned lr_flow saved to", save_lr_flow_path)
-        
-    # torch.save(buffer.sampled_rewards, "sampled_rewards.pt")
-        
-    # Distillation =====
+    return gfn_model, step_offset+args.epochs
 
 
 def final_eval(energy, gfn_model):
@@ -489,9 +429,88 @@ def final_eval(energy, gfn_model):
 def eval():
     pass
 
+def teacher_sampling(buffer, prior, energy, meta_dynamic=False, student=None):
+    if args.teacher == 'mala':
+        
+        batch_size = 60
+        total_num_MCMC_samples = 0
+
+        with tqdm(total=args.buffer_size, desc="MALA sampling") as pbar:
+            while total_num_MCMC_samples < args.buffer_size:
+                
+                if meta_dynamic and student is not None:
+                    population = student.sample(batch_size, energy.log_reward)
+                else:
+                    if prior is None:
+                        population = torch.zeros(batch_size, energy.data_ndim).to(device)
+                    else:
+                        population = prior.sample(batch_size)
+                    
+                samples, rewards = langevin_dynamics(x=population, log_reward=energy.log_reward, device=device, args=args, meta_dynamic=meta_dynamic)
+                
+                buffer.add(samples, rewards)
+                
+                total_num_MCMC_samples += samples.shape[0]
+                pbar.update(samples.shape[0])
+
+        flow_data = torch.tensor(energy.gt_logz())
+        
+    if args.teacher == 'ais':
+        
+        batch_size = 3000
+        iter_teacher = 200
+   
+        for i in trange(iter_teacher, desc="AIS sampling"):
+            if prior is None:
+                raise ValueError("Dirac prior is not supported for AIS.")
+            else:
+                population = prior.sample(batch_size)
+                
+            samples, rewards, log_Z_est = annealed_IS_langevin(x=population, prior=prior, energy=energy, trajectory_length=1000, batch_size=batch_size, meta_dynamic=meta_dynamic)    
+            
+            buffer.add(samples, rewards)
+            
+        flow_data = log_Z_est
+        
+    return flow_data
 
 if __name__ == '__main__':
-    if args.eval:
-        eval()
-    else:
-        train()
+    
+    name = get_name(args)
+    if not os.path.exists(name):
+        os.makedirs(name)
+
+    print(f"Energy: {args.energy}")
+    print(f"Teacher: {args.teacher}")
+    
+    energy = get_energy()
+    teacher_prior = get_prior(energy.data_ndim)
+    
+    config = args.__dict__
+    config["Experiment"] = "{args.energy}"
+    wandb.init(project="GFN Energy", config=config, name=name)
+    
+    buffer = ReplayBuffer(args.buffer_size, device, energy.log_reward, args.batch_size,
+                            data_ndim=energy.data_ndim, beta=args.beta,
+                            rank_weight=args.rank_weight, prioritized=args.prioritized)
+    buffer_ls = ReplayBuffer(args.buffer_size, device, energy.log_reward, args.batch_size,
+                            data_ndim=energy.data_ndim, beta=args.beta,
+                            rank_weight=args.rank_weight, prioritized=args.prioritized)
+
+    global_epochs = 0
+    
+    for i in range(args.round):
+        
+        print(f"Round {i+1} of {args.round}")
+        
+        if i == 0:
+            teacher_flow = teacher_sampling(buffer, teacher_prior, energy, meta_dynamic=False, student=None)
+            student_model, global_epochs = train(energy, buffer, buffer_ls, teacher_flow, name, step_offset=global_epochs)
+        else:
+            teacher_flow = teacher_sampling(buffer, teacher_prior, energy, meta_dynamic=True, student=student_model)
+            student_model, global_epochs = train(energy, buffer, buffer_ls, student_model.flow_model, name, step_offset=global_epochs)
+        
+    print(f"Total {args.round} rounds completed")
+    print("Global epochs : ", global_epochs)
+    
+    print(f"Total energy calls: {energy.energy_call_count}")

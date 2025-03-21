@@ -5,5 +5,6 @@ energy_sampling/results_pis_architectures/
 energy_sampling/teacher_buffer/
 energy_sampling/teacher_log_Z/
 energy_sampling/wandb/
+energy_sampling/true_data
 README.md
 toy.ipynb
