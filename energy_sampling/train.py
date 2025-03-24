@@ -169,7 +169,7 @@ def get_prior(dim):
     
     return prior
 
-def plot_step(energy, gfn_model, buffer, buffer_ls, name):
+def plot_step(energy, gfn_model, name):
     if 'many_well' in args.energy:
         # Sample figures by model
         batch_size = plot_data_size
@@ -349,6 +349,8 @@ def bwd_train_step(energy, gfn_model, buffer, buffer_ls, exploration_std=None, i
             samples, rewards = buffer_ls.sample()
         else:
             samples, rewards = buffer.sample()
+            # check_mc_buffer(energy, samples, rewards, name='plz_')
+            # plt.close('all')
 
     loss = get_gfn_backward_loss(args.mode_bwd, samples, gfn_model, energy.log_reward,
                                  exploration_std=exploration_std)
@@ -397,7 +399,7 @@ def train(energy, buffer, buffer_ls, teacher_flow, name, step_offset):
             metrics.update(eval_step(eval_data, energy, gfn_model, final_eval=False))
             if 'tb-avg' in args.mode_fwd or 'tb-avg' in args.mode_bwd:
                 del metrics['eval/log_Z_learned']
-            images = plot_step(energy, gfn_model, buffer, buffer_ls, name)
+            images = plot_step(energy, gfn_model, name)
             metrics.update(images)
             plt.close('all')
             wandb.log(metrics, step=step_offset+i)
@@ -453,9 +455,9 @@ def teacher_sampling(buffer, prior, energy, meta_dynamic=False, student=None):
                 total_num_MCMC_samples += samples.shape[0]
                 pbar.update(samples.shape[0])
 
-        flow_data = torch.tensor(energy.gt_logz())
+        flow_data = torch.tensor(600.0)
         
-    if args.teacher == 'ais':
+    elif args.teacher == 'ais':
         
         batch_size = 3000
         iter_teacher = 200
@@ -466,13 +468,49 @@ def teacher_sampling(buffer, prior, energy, meta_dynamic=False, student=None):
             else:
                 population = prior.sample(batch_size)
                 
-            samples, rewards, log_Z_est = annealed_IS_langevin(x=population, prior=prior, energy=energy, trajectory_length=1000, batch_size=batch_size, meta_dynamic=meta_dynamic)    
+            samples, rewards, log_Z_est = annealed_IS_langevin(x=population, prior=prior, energy=energy, trajectory_length=100, batch_size=batch_size, meta_dynamic=meta_dynamic)    
             
             buffer.add(samples, rewards)
             
         flow_data = log_Z_est
         
+    else :
+        raise ValueError(f"Invalid teacher: {args.teacher}")
+        
     return flow_data
+
+def check_mc_buffer(energy,buffer_samples, buffer_rewards, name):
+    vizualizations = viz_many_well(energy, buffer_samples)
+    fig_samples_x13, ax_samples_x13, fig_kde_x13, ax_kde_x13, fig_contour_x13, ax_contour_x13, fig_samples_x23, ax_samples_x23, fig_kde_x23, ax_kde_x23, fig_contour_x23, ax_contour_x23 = vizualizations
+
+    fig_samples_x13.savefig(f'{name}samplesx13.pdf', bbox_inches='tight')
+    fig_samples_x23.savefig(f'{name}samplesx23.pdf', bbox_inches='tight')
+
+    fig_kde_x13.savefig(f'{name}kdex13.pdf', bbox_inches='tight')
+    fig_kde_x23.savefig(f'{name}kdex23.pdf', bbox_inches='tight')
+
+    fig_contour_x13.savefig(f'{name}contourx13.pdf', bbox_inches='tight')
+    fig_contour_x23.savefig(f'{name}contourx23.pdf', bbox_inches='tight')
+    
+    fig, ax = plt.subplots()
+    draw_energy_histogram(ax, buffer_rewards,range=(400, 700))
+    draw_energy_histogram(ax, energy.log_reward(energy.sample(batch_size=buffer_samples.shape[0])), range=(400, 700))
+    fig.savefig(f'{name}energy_histogram.pdf', bbox_inches='tight')
+    
+def draw_energy_histogram(
+    ax, log_reward, bins=40, range=(90, 160)
+):
+    log_reward = torch.clamp(log_reward, min=range[0], max=range[1])
+
+    hist, bins = np.histogram(
+        log_reward.detach().cpu().numpy(), bins=bins, range=range, density=True
+    )
+
+    ax.set_xlabel("log reward")
+    ax.set_ylabel("count")
+    ax.grid(True)
+
+    return ax.plot(bins[1:], hist, linewidth=3)
 
 if __name__ == '__main__':
     
@@ -514,3 +552,9 @@ if __name__ == '__main__':
     print("Global epochs : ", global_epochs)
     
     print(f"Total energy calls: {energy.energy_call_count}")
+    
+    
+    
+    
+    
+
