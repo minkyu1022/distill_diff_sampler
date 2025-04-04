@@ -1,52 +1,51 @@
-from functools import lru_cache as cache
+from functools import cache
 
 import torch
 import numpy as np
 
 from .base_set import BaseSet
-    
+
+
 class AnnealedDensities:
     def __init__(
         self,
         energy_function: BaseSet,
-        prior: BaseSet,
-        
+        prior_energy: BaseSet,
     ):
         self.energy_function = energy_function
         self.device = energy_function.device
-        self.prior = prior
+        self.prior_energy = prior_energy
 
-    def energy(self, t, x):
+    def energy(self, times: torch.Tensor, states: torch.Tensor):
 
-        prior_energy = self.prior.energy(x)
-        energy = self.energy_function.energy(x)
+        prior_energy = self.prior_energy.energy(states)
+        energy = self.energy_function.energy(states)
 
-        return (1 - t) * prior_energy + t * energy
+        return (1 - times) * prior_energy + times * energy
 
-    def score(self, t, x):
+    def score(self, times: torch.Tensor, states: torch.Tensor):
 
-        prior_score = self.prior.score(x)
-        target_score = self.energy_function.score(x)
+        prior_score = self.prior_energy.score(states)
+        target_score = self.energy_function.score(states)
 
-        return (1 - t) * prior_score + t * target_score
+        return (1 - times) * prior_score + times * target_score
 
 class AnnealedEnergy(BaseSet):
     logZ_is_available = False
     can_sample = False
 
-    def __init__(self, density_family: AnnealedDensities, t):
+    def __init__(self, density_family: AnnealedDensities, time: float):
         target_energy = density_family.energy_function
         super().__init__()
 
         self.annealed_targets = density_family
-        self.t = t
+        self._time = time
 
-    def gt_logz(self):
-        raise NotImplementedError
+    def energy(self, states: torch.Tensor):
+        return self.annealed_targets.energy(self._time, states)
 
-    def energy(self, x):
-        return self.annealed_targets.energy(self.t, x)
-      
-    def sample(self, batch_size):
-        del batch_size
-        raise NotImplementedError
+    def score(self, states: torch.Tensor):
+        return self.annealed_targets.score(self._time, states)
+
+    def _generate_sample(self, batch_size: int) -> torch.Tensor:
+        raise Exception("Cannot sample from annealed energy")

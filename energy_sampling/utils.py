@@ -3,7 +3,7 @@ import numpy as np
 import math
 import PIL
 
-from gflownet_losses import *
+from metrics.gflownet_losses import *
 
 
 def set_seed(seed):
