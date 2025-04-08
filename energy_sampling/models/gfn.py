@@ -215,10 +215,6 @@ class GFN(nn.Module):
                 var = ((self.pf_std_per_traj ** 2) * self.dt * (1. - (i + 1) * self.dt)) / (
                             1 - i * self.dt) * back_var_correction
                 
-                # mean = mean.to(self.device)
-                # var = var.to(self.device)
-                # s = s.to(self.device)
-                
                 s_ = mean.detach() + var.sqrt().detach() * torch.randn_like(s, device=self.device)
                 
                 noise_backward = (s_ - mean) / var.sqrt()

@@ -8,13 +8,4 @@ energy_sampling/wandb/
 energy_sampling/true_data
 README.md
 toy.ipynb
-
-AIS_histogram.png
-MALA_histogram.png
-plz_contourx13.pdf
-plz_contourx23.pdf
-plz_energy_histogram.pdf
-plz_kdex13.pdf
-plz_kdex23.pdf
-plz_samplesx13.pdf
-plz_samplesx23.pdf
+dummy_save/

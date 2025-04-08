@@ -49,26 +49,5 @@ class RNDModel(nn.Module):
             target_feat = self.target(x)
         predictor_feat = self.predictor(x)
         # Compute per-sample MSE (averaged over feature dimension)
-        intrinsic_reward = F.mse_loss(predictor_feat, target_feat)
-        return intrinsic_reward
-      
-def compute_rnd_loss(rnd_module, samples):
-    """
-    Perform one optimization step on the RND predictor network to minimize the
-    mean squared error between its prediction and the target network's output.
-    
-    Args:
-        rnd_module (RNDModule): The RND module instance.
-        x_samples (Tensor): Batch of samples used to update the predictor.
-        optimizer (torch.optim.Optimizer): Optimizer for rnd_module.predictor parameters.
-    
-    Returns:
-        loss_value (float): The computed MSE loss.
-    """
-    # Forward pass through predictor and target.
-    predictor_feat = rnd_module.predictor(samples)
-    with torch.no_grad():
-        target_feat = rnd_module.target(samples)
-    loss = F.mse_loss(predictor_feat, target_feat)
-
-    return loss
+        intrinsic_reward = F.mse_loss(predictor_feat, target_feat, reduction='none')
+        return intrinsic_reward.sum(-1)

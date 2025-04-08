@@ -7,7 +7,7 @@ from utils import set_seed, cal_subtb_coef_matrix, fig_to_image, get_gfn_optimiz
     get_gfn_backward_loss, get_exploration_std, get_name
 from buffer import ReplayBuffer
 from classical_methods.langevin import langevin_dynamics
-from models import GFN, RNDModel, compute_rnd_loss
+from models import GFN, RNDModel
 from metrics.gflownet_losses import *
 from energies import *
 from metrics.evaluations import *
@@ -99,7 +99,7 @@ parser.add_argument('--zero_init', action='store_true', default=False)
 parser.add_argument('--pis_architectures', action='store_true', default=False)
 parser.add_argument('--lgv_layers', type=int, default=3)
 parser.add_argument('--joint_layers', type=int, default=2)
-parser.add_argument('--seed', type=int, default=12345)
+parser.add_argument('--seed', type=int, default=23456)
 parser.add_argument('--weight_decay', type=float, default=1e-7)
 parser.add_argument('--use_weight_decay', action='store_true', default=False)
 parser.add_argument('--eval', action='store_true', default=False)
@@ -257,7 +257,7 @@ def train_step(energy, gfn_model, gfn_optimizer, rnd_model, rnd_optimizer, it, e
                 loss, states, _, _, log_r  = fwd_train_step(energy, gfn_model, exploration_std, return_exp=True)
                 # buffer.add(states[:, -1],log_r)
                 
-                rnd_loss = compute_rnd_loss(rnd_model, states[:, -1].clone().detach())
+                rnd_loss = rnd_model.forward(states[:, -1].clone().detach()).mean()
             else:
                 loss = fwd_train_step(energy, gfn_model, exploration_std)
                 # not yet RND implementation
@@ -305,7 +305,7 @@ def bwd_train_step(energy, gfn_model, rnd_model, buffer, buffer_ls, exploration_
     loss = get_gfn_backward_loss(args.mode_bwd, samples, gfn_model, energy.log_reward,
                                  exploration_std=exploration_std)
     
-    rnd_loss = compute_rnd_loss(rnd_model, samples.clone().detach())
+    rnd_loss = rnd_model.forward(samples.clone().detach()).mean()
     
     return loss, rnd_loss
 
@@ -473,11 +473,10 @@ if __name__ == '__main__':
         
             if i == 0:
                 teacher_flow = teacher_sampling(args.teacher, buffer, energy)
-                # check_mc_buffer(energy, buffer.sample_dataset.get_seq(), buffer.reward_dataset.get_tsrs(), '1round')
                 student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=teacher_flow)
+        
             else:
                 teacher_flow = teacher_sampling(args.teacher, buffer, energy, expl_model=rnd_model)
-                # check_mc_buffer(energy, buffer.sample_dataset.get_seq(), buffer.reward_dataset.get_tsrs(), '2round')
                 student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=student_model.flow_model)
         
         print(f"Total {args.round} rounds completed")
