@@ -11,5 +11,7 @@ toy.ipynb
 dummy_save/
 
 **/__pycache__
+__pycache__/
+__pycache__/*
 
 cpython

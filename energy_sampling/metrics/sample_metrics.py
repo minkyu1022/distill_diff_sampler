@@ -9,7 +9,6 @@ import ot as pot
 
 min_var_est = 1e-8
 
-
 def wasserstein(
         x0: torch.Tensor,
         x1: torch.Tensor,

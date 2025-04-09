@@ -306,3 +306,7 @@ class LangevinScalingModelPIS(nn.Module):
         t_cos = ((t * self.pe) + self.timestep_phase).cos()
         t_emb = torch.cat([t_sin, t_cos], dim=-1)
         return self.lgv_model(t_emb)
+    
+    
+    
+# TODO: Architecture for ALDP

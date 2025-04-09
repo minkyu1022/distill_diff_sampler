@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+
 class SampleDataset(torch.utils.data.Dataset):
     def __init__(self, sample):
         super(SampleDataset, self).__init__()
