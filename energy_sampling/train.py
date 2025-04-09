@@ -21,8 +21,10 @@ import wandb
 
 parser = argparse.ArgumentParser(description='GFN Linear Regression')
 
-parser.add_argument('--teacher', type=str, default=None, choices=('ais', 'mala'))
 parser.add_argument('--round', type=int, default=1)
+parser.add_argument('--teacher', type=str, default=None, choices=('ais', 'mala'))
+parser.add_argument('--teacher_traj_len',type=int, default=100)
+parser.add_argument('--student_mode', type=str, default='reinit', choices=('reinit', 'partialinit','finetune'))
 
 parser.add_argument('--lr_policy', type=float, default=1e-3)
 parser.add_argument('--lr_flow', type=float, default=1e-2)
@@ -33,7 +35,7 @@ parser.add_argument('--t_emb_dim', type=int, default=64)
 parser.add_argument('--harmonics_dim', type=int, default=64)
 parser.add_argument('--batch_size', type=int, default=300)
 parser.add_argument('--epochs', type=int, default=25000)
-parser.add_argument('--buffer_size', type=int, default=600000)
+parser.add_argument('--buffer_size', type=int, default=1200000)
 parser.add_argument('--T', type=int, default=100)
 parser.add_argument('--subtb_lambda', type=int, default=2)
 parser.add_argument('--t_scale', type=float, default=1.)
@@ -99,7 +101,7 @@ parser.add_argument('--zero_init', action='store_true', default=False)
 parser.add_argument('--pis_architectures', action='store_true', default=False)
 parser.add_argument('--lgv_layers', type=int, default=3)
 parser.add_argument('--joint_layers', type=int, default=2)
-parser.add_argument('--seed', type=int, default=23456)
+parser.add_argument('--seed', type=int, default=12345)
 parser.add_argument('--weight_decay', type=float, default=1e-7)
 parser.add_argument('--use_weight_decay', action='store_true', default=False)
 parser.add_argument('--eval', action='store_true', default=False)
@@ -255,7 +257,9 @@ def train_step(energy, gfn_model, gfn_optimizer, rnd_model, rnd_optimizer, it, e
         if it % 2 == 0:
             if args.sampling == 'buffer':
                 loss, states, _, _, log_r  = fwd_train_step(energy, gfn_model, exploration_std, return_exp=True)
-                # buffer.add(states[:, -1],log_r)
+                
+                if args.local_search:
+                    buffer.add(states[:, -1].detach().cpu(), log_r.detach().cpu())
                 
                 rnd_loss = rnd_model.forward(states[:, -1].clone().detach()).mean()
             else:
@@ -295,12 +299,17 @@ def bwd_train_step(energy, gfn_model, rnd_model, buffer, buffer_ls, exploration_
         if args.local_search:
             if it % args.ls_cycle < 2:
                 samples, rewards = buffer.sample()
+                samples = samples.to(device).detach()
+                rewards = rewards.to(device).detach()
+                
                 local_search_samples, log_r = langevin_dynamics(samples, energy.log_reward, device, args)
                 buffer_ls.add(local_search_samples, log_r)
         
             samples, rewards = buffer_ls.sample()
         else:
             samples, rewards = buffer.sample()
+            samples = samples.to(device).detach()
+            rewards = rewards.to(device).detach()
 
     loss = get_gfn_backward_loss(args.mode_bwd, samples, gfn_model, energy.log_reward,
                                  exploration_std=exploration_std)
@@ -310,19 +319,22 @@ def bwd_train_step(energy, gfn_model, rnd_model, buffer, buffer_ls, exploration_
     return loss, rnd_loss
 
 
-def train(name, energy, buffer, buffer_ls, epoch_offset, log_Z_est=None):
+def train(name, energy, buffer, buffer_ls, epoch_offset, log_Z_est=None, pre_model=None):
     
     eval_data = energy.sample(eval_data_size).to(device)
-
-    gfn_model = GFN(energy.data_ndim, args.s_emb_dim, args.hidden_dim, args.harmonics_dim, args.t_emb_dim,
-                    trajectory_length=args.T, clipping=args.clipping, lgv_clip=args.lgv_clip, gfn_clip=args.gfn_clip,
-                    langevin=args.langevin, learned_variance=args.learned_variance,
-                    partial_energy=args.partial_energy, log_var_range=args.log_var_range,
-                    pb_scale_range=args.pb_scale_range,
-                    t_scale=args.t_scale, langevin_scaling_per_dimension=args.langevin_scaling_per_dimension,
-                    conditional_flow_model=args.conditional_flow_model, learn_pb=args.learn_pb,
-                    pis_architectures=args.pis_architectures, lgv_layers=args.lgv_layers,
-                    joint_layers=args.joint_layers, zero_init=args.zero_init, device=device).to(device)
+    
+    if pre_model is not None: # fine-tuning for GFN model
+        gfn_model = pre_model
+    else: # re-initialization for GFN model
+        gfn_model = GFN(energy.data_ndim, args.s_emb_dim, args.hidden_dim, args.harmonics_dim, args.t_emb_dim,
+                trajectory_length=args.T, clipping=args.clipping, lgv_clip=args.lgv_clip, gfn_clip=args.gfn_clip,
+                langevin=args.langevin, learned_variance=args.learned_variance,
+                partial_energy=args.partial_energy, log_var_range=args.log_var_range,
+                pb_scale_range=args.pb_scale_range,
+                t_scale=args.t_scale, langevin_scaling_per_dimension=args.langevin_scaling_per_dimension,
+                conditional_flow_model=args.conditional_flow_model, learn_pb=args.learn_pb,
+                pis_architectures=args.pis_architectures, lgv_layers=args.lgv_layers,
+                joint_layers=args.joint_layers, zero_init=args.zero_init, device=device).to(device)
     
     rnd_model = RNDModel(input_dim=energy.data_ndim, feature_dim=energy.data_ndim, device=device).to(device)
     
@@ -386,19 +398,20 @@ def teacher_sampling(mode_teacher, buffer, energy, expl_model=None):
     if mode_teacher == 'ais':
         batch_size = 3000
         
-        if expl_model is not None:
-            iter_teacher = 100
-        else:
-            iter_teacher = 200
+        iter_teacher = 200
    
         for i in trange(iter_teacher, desc="AIS sampling"):
             
             prior = Gaussian(device=device, dim=energy.data_ndim, std=1.0)
             population = prior.sample(batch_size)
-                
-            samples, rewards, log_Z_est = annealed_IS_with_langevin(population, prior, energy, expl_model) 
             
-            buffer.add(samples, rewards)
+            if i == iter_teacher - 1:
+                samples, rewards, log_Z_est = annealed_IS_with_langevin(args.teacher_traj_len, population, prior, energy, expl_model, z_est=True) 
+            else:
+                samples, rewards, _ = annealed_IS_with_langevin(args.teacher_traj_len, population, prior, energy, expl_model) 
+            
+            
+            buffer.add(samples.detach().cpu(), rewards.detach().cpu())
         
     elif mode_teacher == 'mala':
         pass
@@ -407,40 +420,6 @@ def teacher_sampling(mode_teacher, buffer, energy, expl_model=None):
         raise ValueError(f"Invalid teacher: {args.teacher}")
     
     return log_Z_est
-
-
-def check_mc_buffer(energy, mc_samples, mc_rewards, name):
-    
-    def draw_energy_histogram(
-        ax, log_reward, bins=40, range=(90, 160)
-    ):
-        log_reward = torch.clamp(log_reward, min=range[0], max=range[1])
-
-        hist, bins = np.histogram(
-            log_reward.detach().cpu().numpy(), bins=bins, range=range, density=True
-        )
-
-        ax.set_xlabel("log reward")
-        ax.set_ylabel("count")
-        ax.grid(True)
-
-        return ax.plot(bins[1:], hist, linewidth=3)
-    
-    def sample_figure(energy, samples, name):
-    
-        vizualizations = viz_many_well(energy, samples)
-        fig_samples_x13, ax_samples_x13, fig_kde_x13, ax_kde_x13, fig_contour_x13, ax_contour_x13, fig_samples_x23, ax_samples_x23, fig_kde_x23, ax_kde_x23, fig_contour_x23, ax_contour_x23 = vizualizations
-
-        fig_contour_x13.savefig(f'{name}_contourx13.pdf', bbox_inches='tight')
-        fig_contour_x23.savefig(f'{name}_contourx23.pdf', bbox_inches='tight')
-        
-        
-    sample_figure(energy, mc_samples, name)
-    
-    fig, ax = plt.subplots()
-    draw_energy_histogram(ax, mc_rewards,range=(100, 900))
-    draw_energy_histogram(ax, energy.log_reward(energy.sample(batch_size=mc_samples.shape[0])), range=(100, 900))
-    fig.savefig(f'{name}_energy_histogram.pdf', bbox_inches='tight')
 
 
 if __name__ == '__main__':
@@ -459,9 +438,9 @@ if __name__ == '__main__':
 
     energy = get_energy()
     
-    buffer = ReplayBuffer(args.buffer_size, device, energy.log_reward,args.batch_size, data_ndim=energy.data_ndim, beta=args.beta,
+    buffer = ReplayBuffer(args.buffer_size, 'cpu', energy.log_reward,args.batch_size, data_ndim=energy.data_ndim, beta=args.beta,
                           rank_weight=args.rank_weight, prioritized=args.prioritized)
-    buffer_ls = ReplayBuffer(args.buffer_size, device, energy.log_reward,args.batch_size, data_ndim=energy.data_ndim, beta=args.beta,
+    buffer_ls = ReplayBuffer(args.buffer_size, 'cpu', energy.log_reward,args.batch_size, data_ndim=energy.data_ndim, beta=args.beta,
                           rank_weight=args.rank_weight, prioritized=args.prioritized)
     
     global_epochs = 0
@@ -469,21 +448,45 @@ if __name__ == '__main__':
     if args.teacher is not None:
         
         for i in range(args.round):
+        
             print(f"Round {i+1} of {args.round}")
         
             if i == 0:
                 teacher_flow = teacher_sampling(args.teacher, buffer, energy)
+                print(f"After AIS, total energy calls: {energy.energy_call_count}")
+                
                 student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=teacher_flow)
+                print(f"After TB, total energy calls: {energy.energy_call_count}")
         
             else:
                 teacher_flow = teacher_sampling(args.teacher, buffer, energy, expl_model=rnd_model)
-                student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=student_model.flow_model)
+                print(f"After AIS, total energy calls: {energy.energy_call_count}")
+                
+                if args.student_mode == 'reinit':
+                    student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=student_model.flow_model, pre_model=None)
+                    print(f"After TB, total energy calls: {energy.energy_call_count}")
+                
+                elif args.student_mode == 'partialinit':
+                    
+                    for module in student_model.joint_model.modules():
+                        if hasattr(module, 'reset_parameters'):
+                            module.reset_parameters()
+                    
+                    student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=student_model.flow_model, pre_model=student_model)
+                    print(f"After TB, total energy calls: {energy.energy_call_count}")
+                    
+                elif args.student_mode == 'finetune':
+                    student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=student_model.flow_model, pre_model=student_model)
+                    print(f"After TB, total energy calls: {energy.energy_call_count}")
+                    
+                else:
+                    raise ValueError(f"Invalid student mode: {args.student_mode}")
         
         print(f"Total {args.round} rounds completed")
         
     else:
         
-        student_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs)
+        student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs)
         
         
     print("Global epochs : ", global_epochs)
