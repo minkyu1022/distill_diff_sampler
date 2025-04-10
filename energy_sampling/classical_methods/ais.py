@@ -5,7 +5,7 @@ from energies.annealed_energy import AnnealedDensities, AnnealedEnergy
 def annealed_IS_with_langevin(x_0, prior, target, expl_model=None):
   
   device = target.device
-  trajectory_length = 100
+  trajectory_length = 200
   batch_size = x_0.shape[0]
   dt = 1/trajectory_length
   
@@ -35,18 +35,18 @@ def annealed_IS_with_langevin(x_0, prior, target, expl_model=None):
       
       annealed_energy = AnnealedEnergy(annealed_densities, t)
       
-      current_log_r = annealed_energy.log_reward(x)
-      log_w += current_log_r - prev_log_r
+      with torch.no_grad():  # 그래프 생성 방지
+        current_log_r = annealed_energy.log_reward(x)
+        log_w += current_log_r - prev_log_r
       
-      x = x.requires_grad_(True)
-      annealed_score = torch.autograd.grad(annealed_energy.log_reward(x).sum(), x)[0]
-      x_new = x + annealed_score.detach() * dt + np.sqrt(2 * dt) * torch.randn_like(x, device=x.device)
+      x.requires_grad_(True)  # 필요한 시점에만 활성화
+      annealed_score = torch.autograd.grad(annealed_energy.log_reward(x).sum(), x, retain_graph=False)[0]
+      with torch.no_grad():
+        x = x + annealed_score * dt + np.sqrt(2 * dt) * torch.randn_like(x, device=x.device)
       
-      x = x_new.detach()
-      
-      prev_log_r = annealed_energy.log_reward(x)
+      with torch.no_grad():  # 그래프 생성 방지
+        prev_log_r = annealed_energy.log_reward(x)
     
     reward = target.log_reward(x)
     log_Z_est = torch.logsumexp(log_w, dim=0) - torch.log(torch.tensor(batch_size, device=device))
-
   return x, reward, log_Z_est

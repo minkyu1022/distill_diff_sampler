@@ -13,7 +13,7 @@ from energies import *
 from metrics.evaluations import *
 
 from classical_methods.ais import annealed_IS_with_langevin
-from classical_methods.kde import KDEEstimator
+# from classical_methods.kde import KDEEstimator
 
 import matplotlib.pyplot as plt
 from tqdm import trange
@@ -23,6 +23,7 @@ parser = argparse.ArgumentParser(description='GFN Linear Regression')
 
 parser.add_argument('--teacher', type=str, default=None, choices=('ais', 'mala'))
 parser.add_argument('--round', type=int, default=1)
+parser.add_argument('--project', type=str, default='aldp')
 
 parser.add_argument('--lr_policy', type=float, default=1e-3)
 parser.add_argument('--lr_flow', type=float, default=1e-2)
@@ -40,7 +41,7 @@ parser.add_argument('--t_scale', type=float, default=1.)
 parser.add_argument('--log_var_range', type=float, default=4.)
 parser.add_argument('--energy', type=str, default='9gmm',
                     choices=('9gmm', '25gmm', '40gmm', 'hard_funnel', 'easy_funnel', 'many_well_32', 'many_well_128',
-                             'many_well_512'))
+                             'many_well_512', 'aldp'))
 parser.add_argument('--mode_fwd', type=str, default="tb", choices=('tb', 'tb-avg', 'db', 'subtb', "pis"))
 parser.add_argument('--mode_bwd', type=str, default="tb", choices=('tb', 'tb-avg', 'mle'))
 parser.add_argument('--both_ways', action='store_true', default=False)
@@ -65,7 +66,6 @@ parser.add_argument('--ld_schedule', action='store_true', default=False)
 
 # target acceptance rate
 parser.add_argument('--target_acceptance_rate', type=float, default=0.574)
-
 
 # For replay buffer
 ################################################################
@@ -99,7 +99,7 @@ parser.add_argument('--zero_init', action='store_true', default=False)
 parser.add_argument('--pis_architectures', action='store_true', default=False)
 parser.add_argument('--lgv_layers', type=int, default=3)
 parser.add_argument('--joint_layers', type=int, default=2)
-parser.add_argument('--seed', type=int, default=23456)
+parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--weight_decay', type=float, default=1e-7)
 parser.add_argument('--use_weight_decay', action='store_true', default=False)
 parser.add_argument('--eval', action='store_true', default=False)
@@ -144,12 +144,14 @@ def get_energy():
         energy = ManyWell(device=device, dim=128)
     elif args.energy == 'many_well_512':
         energy = ManyWell(device=device, dim=512)
+    elif args.energy == 'aldp':
+        energy = ALDP(device=device)
     else:
         raise ValueError(f"Invalid energy: {args.energy}")
     return energy
 
 
-def plot_step(energy, gfn_model, name):
+def plot_step(energy, gfn_model, name, teacher_samples=None):
     if 'many_well' in args.energy :
         batch_size = plot_data_size
         samples = gfn_model.sample(batch_size, energy.log_reward)
@@ -173,8 +175,8 @@ def plot_step(energy, gfn_model, name):
                 "visualization/samplesx13": wandb.Image(fig_to_image(fig_samples_x13)),
                 "visualization/samplesx23": wandb.Image(fig_to_image(fig_samples_x23))}
 
-    elif energy.data_ndim != 2:
-        return {}
+    # elif energy.data_ndim != 2:
+    #     return {}
     
     elif 'gmm' in args.energy:
         
@@ -207,6 +209,45 @@ def plot_step(energy, gfn_model, name):
                 "visualization/kde_overlay": wandb.Image(fig_to_image(fig_kde_overlay)),
                 "visualization/kde": wandb.Image(fig_to_image(fig_kde))}
 
+    elif args.energy == 'aldp':
+        batch_size = plot_data_size
+        student_samples = gfn_model.sample(batch_size, energy.log_reward)
+        indices = torch.linspace(0, len(teacher_samples) - 1, batch_size).long()
+        teacher_samples = teacher_samples[indices]
+        gt_samples = energy.sample(batch_size)
+        
+        student_phi_psi_fig = plot_phi_psi(student_samples.reshape(-1, 22, 3))
+        teacher_phi_psi_fig = plot_phi_psi(teacher_samples.reshape(-1, 22, 3))
+        gt_phi_psi_fig = plot_phi_psi(gt_samples.reshape(-1, 22, 3))
+        
+        student_energies = energy.energy(student_samples)
+        teacher_energies = energy.energy(teacher_samples)
+        gt_energies = energy.energy(gt_samples)
+
+        student_idx = torch.argsort(student_energies)
+        teacher_idx = torch.argsort(teacher_energies)
+        student_best_sample = student_samples[student_idx[0]].reshape(22, 3)
+        teacher_best_sample = teacher_samples[teacher_idx[0]].reshape(22, 3)
+        student_modest_sample = student_samples[student_idx[int(0.5 * batch_size)]].reshape(22, 3)
+        teacher_modest_sample = teacher_samples[teacher_idx[int(0.5 * batch_size)]].reshape(22, 3)
+        
+        # save positions
+        np.save(f'{name}student_best_sample.npy', student_best_sample.cpu().numpy())
+        np.save(f'{name}teacher_best_sample.npy', teacher_best_sample.cpu().numpy())
+        np.save(f'{name}student_modest_sample.npy', student_modest_sample.cpu().numpy())
+        np.save(f'{name}teacher_modest_sample.npy', teacher_modest_sample.cpu().numpy())
+        
+        energy_dict = {
+            'Student': student_energies.detach().cpu().numpy(),
+            'Teacher': teacher_energies.detach().cpu().numpy(),
+            'GT': gt_energies.detach().cpu().numpy()
+        }
+        energy_hist_fig = plot_energy_hist(energy_dict)
+        
+        return {"visualization/student_phi_psi": wandb.Image(fig_to_image(student_phi_psi_fig)),
+                "visualization/teacher_phi_psi": wandb.Image(fig_to_image(teacher_phi_psi_fig)),
+                "visualization/gt_phi_psi": wandb.Image(fig_to_image(gt_phi_psi_fig)),
+                "visualization/energy_hist": wandb.Image(fig_to_image(energy_hist_fig))}
     else:
         NotImplementedError(f"Energy {args.energy} not supported for plotting")
 
@@ -310,8 +351,8 @@ def bwd_train_step(energy, gfn_model, rnd_model, buffer, buffer_ls, exploration_
     return loss, rnd_loss
 
 
-def train(name, energy, buffer, buffer_ls, epoch_offset, log_Z_est=None):
-    
+def train(name, energy, buffer, buffer_ls, epoch_offset, log_Z_est=None, teacher_samples=None):
+
     eval_data = energy.sample(eval_data_size).to(device)
 
     gfn_model = GFN(energy.data_ndim, args.s_emb_dim, args.hidden_dim, args.harmonics_dim, args.t_emb_dim,
@@ -358,7 +399,7 @@ def train(name, energy, buffer, buffer_ls, epoch_offset, log_Z_est=None):
             metrics.update(eval_step(eval_data, energy, gfn_model, final_eval=False))
             if 'tb-avg' in args.mode_fwd or 'tb-avg' in args.mode_bwd:
                 del metrics['eval/log_Z_learned']
-            images = plot_step(energy, gfn_model, name)
+            images = plot_step(energy, gfn_model, name, teacher_samples)
             metrics.update(images)
             plt.close('all')
             wandb.log(metrics, step=epoch_offset+i)
@@ -382,14 +423,13 @@ def final_eval(energy, gfn_model):
     return results
 
 def teacher_sampling(mode_teacher, buffer, energy, expl_model=None):
-    
     if mode_teacher == 'ais':
-        batch_size = 3000
+        batch_size = 20000
         
         if expl_model is not None:
-            iter_teacher = 100
+            iter_teacher = 10
         else:
-            iter_teacher = 200
+            iter_teacher = 20
    
         for i in trange(iter_teacher, desc="AIS sampling"):
             
@@ -406,7 +446,7 @@ def teacher_sampling(mode_teacher, buffer, energy, expl_model=None):
     else:
         raise ValueError(f"Invalid teacher: {args.teacher}")
     
-    return log_Z_est
+    return samples, log_Z_est
 
 
 def check_mc_buffer(energy, mc_samples, mc_rewards, name):
@@ -454,14 +494,14 @@ if __name__ == '__main__':
         
     config = args.__dict__
     config["Experiment"] = "{args.energy}"
-    wandb.init(project="GFN Energy", config=config, name=name)
+    wandb.init(project=args.project, config=config, name=name)
     wandb.run.log_code(".")
 
     energy = get_energy()
     
-    buffer = ReplayBuffer(args.buffer_size, device, energy.log_reward,args.batch_size, data_ndim=energy.data_ndim, beta=args.beta,
+    buffer = ReplayBuffer(args.buffer_size, device, energy.log_reward, args.batch_size, data_ndim=energy.data_ndim, beta=args.beta,
                           rank_weight=args.rank_weight, prioritized=args.prioritized)
-    buffer_ls = ReplayBuffer(args.buffer_size, device, energy.log_reward,args.batch_size, data_ndim=energy.data_ndim, beta=args.beta,
+    buffer_ls = ReplayBuffer(args.buffer_size, device, energy.log_reward, args.batch_size, data_ndim=energy.data_ndim, beta=args.beta,
                           rank_weight=args.rank_weight, prioritized=args.prioritized)
     
     global_epochs = 0
@@ -472,12 +512,12 @@ if __name__ == '__main__':
             print(f"Round {i+1} of {args.round}")
         
             if i == 0:
-                teacher_flow = teacher_sampling(args.teacher, buffer, energy)
-                student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=teacher_flow)
+                teacher_samples, teacher_flow = teacher_sampling(args.teacher, buffer, energy)
+                student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=teacher_flow, teacher_samples=teacher_samples)
         
             else:
-                teacher_flow = teacher_sampling(args.teacher, buffer, energy, expl_model=rnd_model)
-                student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=student_model.flow_model)
+                teacher_samples, teacher_flow = teacher_sampling(args.teacher, buffer, energy, expl_model=rnd_model)
+                student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=student_model.flow_model, teacher_samples=teacher_samples)
         
         print(f"Total {args.round} rounds completed")
         

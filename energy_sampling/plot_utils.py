@@ -1,9 +1,11 @@
 import seaborn as sns
 import torch
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 import itertools
 import numpy as np
 from einops import rearrange
+from utils import compute_dihedral
 
 
 def get_figure(bounds=(-10., 10.)):
@@ -40,7 +42,7 @@ def plot_samples(samples, ax=None, bounds=(-10., 10.), alpha=0.5):
     samples = torch.clamp(samples, bounds[0], bounds[1])
     samples = samples.cpu().detach()
     ax.scatter(samples[:, 0], samples[:, 1], alpha=alpha, marker="o", s=10)
-
+    
 
 def plot_kde(samples, ax=None, bounds=(-10., 10.)):
     if ax is None:
@@ -163,3 +165,41 @@ def viz_contour_sample2d(points, fname, log_prob_func,
             linewidth=0, marker=".", markersize=1.5, alpha=alpha)
 
     return fig, ax
+
+
+def plot_phi_psi(xs):
+    fig = plt.figure(figsize=(6, 6))
+    
+    angle_1 = [6, 8, 14, 16]
+    angle_2 = [1, 6, 8, 14] 
+    
+    psi = compute_dihedral(xs[:, angle_1, :])
+    phi = compute_dihedral(xs[:, angle_2, :])
+    phi = phi.detach().cpu().numpy()
+    psi = psi.detach().cpu().numpy()
+    
+    plt.hist2d(phi, psi, 50, norm=LogNorm())
+    plt.xlim(-np.pi, np.pi)
+    plt.ylim(-np.pi, np.pi)
+    plt.xlabel("$\phi$")
+    plt.ylabel("$\psi$")
+    plt.tight_layout()
+    return fig
+
+
+def plot_energy_hist(energy_dict):    
+    fig = plt.figure(figsize=(6, 6))
+    plt.xlabel("Energy   [$k_B T$]")
+    
+    student_upper = max(np.percentile(energy_dict['Student'], 80), 20)
+    teacher_upper = max(np.percentile(energy_dict['Teacher'], 80), 20)
+    upper = max(student_upper, teacher_upper)
+    lower = min(energy_dict['GT'])
+    
+    for name, energy in energy_dict.items():
+        plt.hist(energy, range=(lower, upper), bins=40, density=False, label=name, alpha=0.5)
+
+    plt.ylabel(f"Count")
+    plt.legend()
+    plt.tight_layout()
+    return fig
