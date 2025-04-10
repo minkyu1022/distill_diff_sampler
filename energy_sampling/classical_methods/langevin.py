@@ -1,7 +1,5 @@
 import torch
 import numpy as np
-from torch.distributions.normal import Normal
-import torch.nn.functional as F
 
 def adjust_ld_step(current_ld_step, current_acceptance_rate, target_acceptance_rate=0.574, adjustment_factor=0.01):
     """
@@ -73,6 +71,6 @@ def langevin_dynamics(x, log_reward, device, args, kde_estimator=None):
     return torch.cat(accepted_samples, dim=0), torch.cat(accepted_logr, dim=0)
 
 
-def aldp_langevin_dynamics():
-    # TODO: 
-    pass
+def aldp_langevin_dynamics(x, log_reward, device, args):
+    for i in range(args.n_steps):
+        pass
