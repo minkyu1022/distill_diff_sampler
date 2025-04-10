@@ -9,6 +9,9 @@ energy_sampling/true_data
 README.md
 toy.ipynb
 dummy_save/
+data/
+figures/
+notebooks/
 
 **/__pycache__
 __pycache__/
