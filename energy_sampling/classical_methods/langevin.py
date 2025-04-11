@@ -69,8 +69,3 @@ def langevin_dynamics(x, log_reward, device, args, kde_estimator=None):
             total_proposals = 0
 
     return torch.cat(accepted_samples, dim=0), torch.cat(accepted_logr, dim=0)
-
-
-def aldp_langevin_dynamics(x, log_reward, device, args):
-    for i in range(args.n_steps):
-        pass

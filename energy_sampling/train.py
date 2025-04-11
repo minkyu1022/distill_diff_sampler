@@ -15,6 +15,7 @@ from metrics.evaluations import *
 from classical_methods.ais import annealed_IS_with_langevin
 # from classical_methods.kde import KDEEstimator
 
+from classical_methods.md import aldp_md
 import matplotlib.pyplot as plt
 from tqdm import trange
 import wandb
@@ -23,7 +24,7 @@ parser = argparse.ArgumentParser(description='GFN Linear Regression')
 
 parser.add_argument('--round', type=int, default=1)
 parser.add_argument('--project', type=str, default='aldp')
-parser.add_argument('--teacher', type=str, default=None, choices=('ais', 'mala'))
+parser.add_argument('--teacher', type=str, default='ais', choices=('ais', 'mala', 'md', 'ais_md'))
 parser.add_argument('--teacher_traj_len',type=int, default=100)
 parser.add_argument('--student_mode', type=str, default='reinit', choices=('reinit', 'partialinit','finetune'))
 
@@ -80,6 +81,12 @@ parser.add_argument('--rank_weight', type=float, default=1e-2)
 # three kinds of replay training: random, reward prioritized, rank-based
 parser.add_argument('--prioritized', type=str, default="rank", choices=('none', 'reward', 'rank'))
 ################################################################
+
+parser.add_argument("--teacher_temperature", default=300, type=float)
+parser.add_argument("--gamma", default=1.0, type=float)
+parser.add_argument("--timestep", default=1e-3, type=float)
+parser.add_argument('--n_steps', type=int, default=1000)
+
 
 parser.add_argument('--bwd', action='store_true', default=False)
 parser.add_argument('--exploratory', action='store_true', default=False)
@@ -434,11 +441,9 @@ def final_eval(energy, gfn_model):
     return results
 
 def teacher_sampling(mode_teacher, buffer, energy, expl_model=None):
+    batch_size = 20000
+    iter_teacher = 20
     if mode_teacher == 'ais':
-        batch_size = 20000
-        
-        iter_teacher = 20
-   
         for i in trange(iter_teacher, desc="AIS sampling"):
             
             prior = Gaussian(device=device, dim=energy.data_ndim, std=1.0)
@@ -449,9 +454,27 @@ def teacher_sampling(mode_teacher, buffer, energy, expl_model=None):
             else:
                 samples, rewards, _ = annealed_IS_with_langevin(args.teacher_traj_len, population, prior, energy, expl_model) 
             
+            buffer.add(samples.detach().cpu(), rewards.detach().cpu())
+
+    if mode_teacher == 'ais_md':
+        for i in trange(iter_teacher, desc="AIS_MD sampling"):
+            
+            prior = Gaussian(device=device, dim=energy.data_ndim, std=1.0)
+            population = prior.sample(batch_size)
+            
+            if i == iter_teacher - 1:
+                samples, rewards, log_Z_est = annealed_IS_with_langevin(args.teacher_traj_len, population, prior, energy, expl_model, z_est=True) 
+            else:
+                samples, rewards, _ = annealed_IS_with_langevin(args.teacher_traj_len, population, prior, energy, expl_model) 
+            
+            samples, rewards, _ = aldp_md(batch_size, device, energy, args, expl_model, samples)
             
             buffer.add(samples.detach().cpu(), rewards.detach().cpu())
-        
+            
+    elif mode_teacher == 'md':
+        for i in trange(iter_teacher, desc="MD sampling"):
+            samples, rewards, log_Z_est = aldp_md(batch_size, device, energy, args, expl_model)
+            buffer.add(samples.detach().cpu(), rewards.detach().cpu())
     elif mode_teacher == 'mala':
         pass
     

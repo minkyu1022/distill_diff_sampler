@@ -18,9 +18,8 @@ def annealed_IS_with_langevin(traj_len, x_0, prior, target, expl_model=None, z_e
       x = x.requires_grad_(True)
       annealed_log_reward = (1-t) * prior.log_reward(x) + t * (target.log_reward(x) + 50 * expl_model.forward(x))
       annealed_score = torch.autograd.grad(annealed_log_reward.sum(), x)[0]
-      x_new = x + annealed_score.detach() * dt + np.sqrt(2 * dt) * torch.randn_like(x, device=x.device)
-      
-      x = x_new.detach()
+      with torch.no_grad():
+        x = x + annealed_score.detach() * dt + np.sqrt(2 * dt) * torch.randn_like(x, device=x.device)
         
     reward = target.log_reward(x)
     log_Z_est = None
