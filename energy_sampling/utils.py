@@ -153,7 +153,7 @@ def get_name(args):
     else:
         results = 'results'
 
-    name = f'{results}/{args.energy}/{name}gfn/{ways}/T_{args.T}/tscale_{args.t_scale}/lvr_{args.log_var_range}/'
+    name = f'{results}/{args.teacher}/{args.energy}/{name}gfn/{ways}/T_{args.T}/tscale_{args.t_scale}/lvr_{args.log_var_range}/'
 
     name = f'{name}/seed_{args.seed}/'
 

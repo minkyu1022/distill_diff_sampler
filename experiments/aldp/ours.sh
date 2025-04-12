@@ -1,13 +1,17 @@
-SEEDS=(4 5 6 7)
+SEEDS=(0)
 # --teacher ais \
-for i in {0..3}; do
+for i in {0..0}; do
   
   echo "Running seed=${SEEDS[$i]} on GPU ${SEEDS[$i]}..."
   
   CUDA_VISIBLE_DEVICES=${SEEDS[$i]} python energy_sampling/train.py \
-    --round 2 \
-    --project aldp_ais_md \
-    --teacher ais_md \
+    --round 1 \
+    --project md \
+    --teacher md \
+    --n_steps 1000000 \
+    --teacher_batch_size 1000 \
+    --teacher_temperature 300 \
+    --iter_teacher 1 \
     --t_scale 1.0 \
     --energy aldp \
     --teacher_traj_len 5000 \

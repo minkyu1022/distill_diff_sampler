@@ -193,6 +193,7 @@ def plot_energy_hist(energy_dict):
     
     student_upper = max(np.percentile(energy_dict['Student'], 80), 20)
     teacher_upper = max(np.percentile(energy_dict['Teacher'], 80), 20)
+    
     upper = max(student_upper, teacher_upper)
     lower = min(energy_dict['GT'])
     

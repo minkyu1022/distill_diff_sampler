@@ -36,6 +36,8 @@ parser.add_argument('--s_emb_dim', type=int, default=64)
 parser.add_argument('--t_emb_dim', type=int, default=64)
 parser.add_argument('--harmonics_dim', type=int, default=64)
 parser.add_argument('--batch_size', type=int, default=300)
+parser.add_argument('--iter_teacher', type=int, default=10)
+parser.add_argument('--teacher_batch_size', type=int, default=20000)
 parser.add_argument('--epochs', type=int, default=25000)
 parser.add_argument('--buffer_size', type=int, default=1200000)
 parser.add_argument('--T', type=int, default=100)
@@ -84,8 +86,8 @@ parser.add_argument('--prioritized', type=str, default="rank", choices=('none', 
 
 parser.add_argument("--teacher_temperature", default=300, type=float)
 parser.add_argument("--gamma", default=1.0, type=float)
-parser.add_argument("--timestep", default=1e-3, type=float)
-parser.add_argument('--n_steps', type=int, default=1000)
+parser.add_argument("--timestep", default=1e-4, type=float)
+parser.add_argument('--n_steps', type=int, default=10000)
 
 
 parser.add_argument('--bwd', action='store_true', default=False)
@@ -441,43 +443,40 @@ def final_eval(energy, gfn_model):
     return results
 
 def teacher_sampling(mode_teacher, buffer, energy, expl_model=None):
-    batch_size = 20000
-    iter_teacher = 20
     if mode_teacher == 'ais':
-        for i in trange(iter_teacher, desc="AIS sampling"):
+        for i in trange(args.iter_teacher, desc="AIS sampling"):
             
             prior = Gaussian(device=device, dim=energy.data_ndim, std=1.0)
-            population = prior.sample(batch_size)
+            population = prior.sample(args.teacher_batch_size)
             
-            if i == iter_teacher - 1:
+            if i == args.iter_teacher - 1:
                 samples, rewards, log_Z_est = annealed_IS_with_langevin(args.teacher_traj_len, population, prior, energy, expl_model, z_est=True) 
             else:
                 samples, rewards, _ = annealed_IS_with_langevin(args.teacher_traj_len, population, prior, energy, expl_model) 
             
             buffer.add(samples.detach().cpu(), rewards.detach().cpu())
 
-    if mode_teacher == 'ais_md':
-        for i in trange(iter_teacher, desc="AIS_MD sampling"):
+    elif mode_teacher == 'ais_md':
+        for i in trange(args.iter_teacher, desc="AIS_MD sampling"):
             
             prior = Gaussian(device=device, dim=energy.data_ndim, std=1.0)
-            population = prior.sample(batch_size)
+            population = prior.sample(args.teacher_batch_size)
             
-            if i == iter_teacher - 1:
+            if i == args.iter_teacher - 1:
                 samples, rewards, log_Z_est = annealed_IS_with_langevin(args.teacher_traj_len, population, prior, energy, expl_model, z_est=True) 
             else:
                 samples, rewards, _ = annealed_IS_with_langevin(args.teacher_traj_len, population, prior, energy, expl_model) 
             
-            samples, rewards, _ = aldp_md(batch_size, device, energy, args, expl_model, samples)
+            samples, rewards, _ = aldp_md(args.teacher_batch_size, device, energy, args, expl_model, samples)
             
             buffer.add(samples.detach().cpu(), rewards.detach().cpu())
             
     elif mode_teacher == 'md':
-        for i in trange(iter_teacher, desc="MD sampling"):
-            samples, rewards, log_Z_est = aldp_md(batch_size, device, energy, args, expl_model)
+        for i in trange(args.iter_teacher, desc="MD sampling"):
+            samples, rewards, log_Z_est = aldp_md(args.teacher_batch_size, device, energy, args, expl_model)
             buffer.add(samples.detach().cpu(), rewards.detach().cpu())
-    elif mode_teacher == 'mala':
-        pass
-    
+    # elif mode_teacher == 'mala':
+    #     pass
     else:
         raise ValueError(f"Invalid teacher: {args.teacher}")
     
@@ -488,6 +487,10 @@ if __name__ == '__main__':
     
     print(f"Energy: {args.energy}")
     print(f"Teacher: {args.teacher}")
+    
+    # sleep 30000 seconds using import time
+    import time
+    time.sleep(30000)
     
     name = get_name(args)
     if not os.path.exists(name):
