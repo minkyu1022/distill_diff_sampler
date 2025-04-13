@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .architectures import *
-from utils import gaussian_params
+from utils import gaussian_params, kabsch
 
 logtwopi = math.log(2 * math.pi)
 
@@ -19,7 +19,7 @@ class GFN(nn.Module):
                  langevin_scaling_per_dimension: bool = True, conditional_flow_model: bool = False,
                  learn_pb: bool = False,
                  pis_architectures: bool = False, lgv_layers: int = 3, joint_layers: int = 2,
-                 zero_init: bool = False, device=torch.device('cuda')):
+                 zero_init: bool = False, device=torch.device('cuda'), kabsch: bool = False):
         super(GFN, self).__init__()
         self.dim = dim
         self.harmonics_dim = harmonics_dim
@@ -48,6 +48,7 @@ class GFN(nn.Module):
         self.dt = 1. / trajectory_length
         self.log_var_range = log_var_range
         self.device = device
+        self.kabsch = kabsch
 
         if self.pis_architectures:
 
@@ -111,6 +112,8 @@ class GFN(nn.Module):
         t_lgv = t
 
         t = self.t_model(t).repeat(bsz, 1)
+        if self.kabsch:
+            s = kabsch(s.reshape(s.shape[0], -1, 3)).reshape(s.shape[0], -1)
         s = self.s_model(s)
         s_new = self.joint_model(s, t)
 

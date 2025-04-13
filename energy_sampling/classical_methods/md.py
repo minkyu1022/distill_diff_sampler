@@ -29,33 +29,8 @@ def aldp_md(batch_size, device, target, args, expl_model, initial_position=None)
         [1.007947, 1.007947, 1.007947],
         [1.007947, 1.007947, 1.007947]
     ]
-
-    # initial_position_angstrom = [
-    #     [19.745,  3.573, 20.603],  # HETATM    1  H1  ACE
-    #     [18.882,  3.072, 21.040],  # HETATM    2  CH3 ACE
-    #     [19.299,  2.583, 21.920],  # HETATM    3  H2  ACE
-    #     [18.428,  2.368, 20.342],  # HETATM    4  H3  ACE
-    #     [17.901,  4.069, 21.635],  # HETATM    5  C   ACE
-    #     [16.732,  3.819, 21.870],  # HETATM    6  O   ACE
-    #     [18.376,  5.305, 21.721],  # ATOM      7  N   ALA
-    #     [19.385,  5.264, 21.729],  # ATOM      8  H   ALA
-    #     [17.741,  6.537, 22.185],  # ATOM      9  CA  ALA
-    #     [16.674,  6.456, 21.975],  # ATOM     10  HA  ALA
-    #     [18.128,  6.686, 23.697],  # ATOM     11  CB  ALA
-    #     [17.646,  7.564, 24.127],  # ATOM     12  HB1 ALA
-    #     [19.202,  6.812, 23.836],  # ATOM     13  HB2 ALA
-    #     [17.804,  5.840, 24.302],  # ATOM     14  HB3 ALA
-    #     [18.239,  7.806, 21.423],  # ATOM     15  C   ALA
-    #     [19.120,  7.699, 20.619],  # ATOM     16  O   ALA
-    #     [17.667,  8.950, 21.653],  # HETATM   17  N   NME
-    #     [16.917,  8.869, 22.326],  # HETATM   18  H   NME
-    #     [17.764, 10.096, 20.832],  # HETATM   19  C   NME
-    #     [16.789, 10.514, 20.583],  # HETATM   20  H1  NME
-    #     [18.366, 10.885, 21.283],  # HETATM   21  H2  NME
-    #     [18.270,  9.740, 19.934]   # HETATM   22  H3  NME
-    # ]
     
-    initial_position_angstrom = [
+    fixed_initial_position = [
         [ 1.2806,  0.3889,  0.8497],
         [ 0.5782,  0.2985,  0.2534],
         [ 0.4952,  0.3327,  0.2920],
@@ -79,11 +54,12 @@ def aldp_md(batch_size, device, target, args, expl_model, initial_position=None)
         [ 0.4070,  0.8311, -0.1548],
         [ 0.5859,  0.8583, -0.1580]
     ]
+    
     mass = torch.tensor(mass, device=device).unsqueeze(0)
     if initial_position is not None:
         position = initial_position.reshape(batch_size, -1, 3)
     else:
-        position = torch.tensor(initial_position_angstrom, device=device) 
+        position = torch.tensor(fixed_initial_position, device=device) 
         position = position.unsqueeze(0).expand(batch_size, -1, -1)
     
     # position = target.sample(batch_size).reshape(batch_size, -1, 3)

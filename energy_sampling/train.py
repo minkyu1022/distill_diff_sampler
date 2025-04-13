@@ -24,9 +24,11 @@ parser = argparse.ArgumentParser(description='GFN Linear Regression')
 
 parser.add_argument('--round', type=int, default=1)
 parser.add_argument('--project', type=str, default='aldp')
-parser.add_argument('--teacher', type=str, default='ais', choices=('ais', 'mala', 'md', 'ais_md'))
+parser.add_argument('--teacher', type=str, default='ais', choices=('ais', 'md', 'ais_md', 'None', 'data'))
+parser.add_argument('--data_dir', type=str, default='')
 parser.add_argument('--teacher_traj_len',type=int, default=100)
 parser.add_argument('--student_mode', type=str, default='reinit', choices=('reinit', 'partialinit','finetune'))
+
 
 parser.add_argument('--lr_policy', type=float, default=1e-3)
 parser.add_argument('--lr_flow', type=float, default=1e-2)
@@ -50,6 +52,7 @@ parser.add_argument('--energy', type=str, default='9gmm',
 parser.add_argument('--mode_fwd', type=str, default="tb", choices=('tb', 'tb-avg', 'db', 'subtb', "pis"))
 parser.add_argument('--mode_bwd', type=str, default="tb", choices=('tb', 'tb-avg', 'mle'))
 parser.add_argument('--both_ways', action='store_true', default=False)
+parser.add_argument('--kabsch', action='store_true', default=False)
 
 # For local search
 ################################################################
@@ -383,9 +386,9 @@ def train(name, energy, buffer, buffer_ls, epoch_offset, log_Z_est=None, pre_mod
                 t_scale=args.t_scale, langevin_scaling_per_dimension=args.langevin_scaling_per_dimension,
                 conditional_flow_model=args.conditional_flow_model, learn_pb=args.learn_pb,
                 pis_architectures=args.pis_architectures, lgv_layers=args.lgv_layers,
-                joint_layers=args.joint_layers, zero_init=args.zero_init, device=device).to(device)
+                joint_layers=args.joint_layers, zero_init=args.zero_init, device=device, kabsch=args.kabsch).to(device)
     
-    rnd_model = RNDModel(input_dim=energy.data_ndim, feature_dim=energy.data_ndim, device=device).to(device)
+    rnd_model = RNDModel(input_dim=energy.data_ndim, feature_dim=energy.data_ndim, device=device, kabsch=args.kabsch).to(device)
     
     
     if log_Z_est is not None:
@@ -488,10 +491,6 @@ if __name__ == '__main__':
     print(f"Energy: {args.energy}")
     print(f"Teacher: {args.teacher}")
     
-    # sleep 30000 seconds using import time
-    import time
-    time.sleep(30000)
-    
     name = get_name(args)
     if not os.path.exists(name):
         os.makedirs(name)
@@ -510,15 +509,34 @@ if __name__ == '__main__':
     
     global_epochs = 0
     
-    if args.teacher is not None:
+    if args.teacher in ['ais', 'md', 'ais_md']:
         
         for i in range(args.round):
         
             print(f"Round {i+1} of {args.round}")
             
             if i == 0:
-                teacher_samples, teacher_flow = teacher_sampling(args.teacher, buffer, energy)
-                print(f"After AIS, total energy calls: {energy.energy_call_count}")
+                if len(args.data_dir) > 0:
+                    data = []
+                    for file in sorted(os.listdir(args.data_dir))[:400]:
+                        if file.endswith('.npy'):
+                            data.append(np.load(os.path.join(args.data_dir, file)))
+                    data = np.concatenate(data, axis=0).reshape(-1, 66)
+                    indices = np.random.permutation(len(data))[:args.buffer_size]
+                    data = data[indices]
+                    data = torch.tensor(data, device=device, dtype=torch.float32)
+                    log_r = torch.zeros(data.shape[0], device=device)
+                    # calculate log_r for every 10000 samples 
+                    for j in range(0, data.shape[0], 10000):
+                        with torch.no_grad():
+                            end = min(j + 10000, data.shape[0])
+                            log_r[j:end] = energy.log_reward(data[j:end])
+                    buffer.add(data.detach().cpu(), log_r.detach().cpu())
+                    
+                    student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, teacher_samples=data)
+                else:
+                    teacher_samples, teacher_flow = teacher_sampling(args.teacher, buffer, energy)
+                    print(f"After AIS, total energy calls: {energy.energy_call_count}")
                 
                 student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=teacher_flow, teacher_samples=teacher_samples)
                 print(f"After TB, total energy calls: {energy.energy_call_count}")
@@ -549,8 +567,7 @@ if __name__ == '__main__':
         
         print(f"Total {args.round} rounds completed")
         
-    else:
-        
+    elif args.teacher == 'None':
         student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs)
         
         
