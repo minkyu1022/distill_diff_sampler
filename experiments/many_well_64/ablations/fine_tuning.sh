@@ -5,6 +5,7 @@ for i in {0..3}; do
   echo "Running seed=${SEEDS[$i]} on GPU $i..."
   
   CUDA_VISIBLE_DEVICES=$i python energy_sampling/train.py \
+    --method fine_tuning \
     --round 2 \
     --teacher ais \
     --student_mode finetune \

@@ -91,9 +91,9 @@ def get_gfn_forward_loss(mode, init_state, gfn_model, log_reward, coeff_matrix, 
 
 
 
-def get_gfn_backward_loss(mode, samples, gfn_model, log_reward, exploration_std=None):
+def get_gfn_backward_loss(mode, samples, rewards, gfn_model, log_reward, exploration_std=None):
     if mode == 'tb':
-        loss = bwd_tb(samples, gfn_model, log_reward, exploration_std)
+        loss = bwd_tb(samples, rewards, gfn_model, log_reward, exploration_std)
     elif mode == 'tb-avg':
         loss = bwd_tb_avg(samples, gfn_model, log_reward, exploration_std)
     elif mode == 'mle':

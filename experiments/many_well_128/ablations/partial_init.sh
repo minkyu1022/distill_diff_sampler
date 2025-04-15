@@ -1,13 +1,14 @@
-SEEDS=(12345 23456 34567 45678)
+SEEDS=(1 3 4 5)
 
 for i in {0..3}; do
   
   echo "Running seed=${SEEDS[$i]} on GPU $i..."
   
   CUDA_VISIBLE_DEVICES=$i python energy_sampling/train.py \
+    --method partial_init \
     --round 2 \
     --teacher ais \
-    --student_mode partialinint \
+    --student_mode partialinit \
     --t_scale 1.0 \
     --energy many_well_128 \
     --pis_architectures \

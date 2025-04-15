@@ -5,6 +5,7 @@ for i in {0..3}; do
   echo "Running seed=${SEEDS[$i]} on GPU $i..."
   
   CUDA_VISIBLE_DEVICES=$i python energy_sampling/train.py \
+    --method PIS \
     --t_scale 1.0 \
     --energy many_well_32 \
     --pis_architectures \
@@ -15,7 +16,6 @@ for i in {0..3}; do
     --hidden_dim 256 \
     --s_emb_dim 256 \
     --t_emb_dim 256 \
-    --epochs 10000 \
     --seed ${SEEDS[$i]} \
     &
 

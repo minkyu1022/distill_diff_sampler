@@ -7,6 +7,9 @@ energy_sampling/teacher_log_Z/
 energy_sampling/wandb/
 energy_sampling/true_data
 README.md
-toy.ipynb
+energy_sampling/toy.ipynb
 dummy_save/
 vae/
+__init__.py
+energy_sampling/many_well_32/
+.vscode/
