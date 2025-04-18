@@ -55,8 +55,11 @@ class ManyWell(BaseSet):
     def gt_logz(self):
         return self.n_wells * self.logZ_doublewell
 
-    def energy(self, x):
-        self.energy_call_count += x.shape[0]
+    def energy(self, x, count=False):
+        
+        if count:
+            self.energy_call_count += x.shape[0]
+        
         return -self.manywell_logprob(x)
 
     def doublewell_logprob(self, x):

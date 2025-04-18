@@ -6,4 +6,3 @@ from .hard_funnel import HardFunnel
 from .easy_funnel import EasyFunnel
 from .many_well import ManyWell
 from .fourty_gmm import FourtyGaussianMixture
-from .annealed_energy import AnnealedDensities, AnnealedEnergy

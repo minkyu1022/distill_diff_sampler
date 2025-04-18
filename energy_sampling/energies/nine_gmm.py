@@ -25,11 +25,17 @@ class NineGaussianMixture(BaseSet):
         mix = D.Categorical(torch.ones(nmode).to(self.device))
         self.gmm = MixtureSameFamily(mix, comp)
         self.data_ndim = dim
+        
+        self.energy_call_count = 0
 
     def gt_logz(self):
         return 0.
 
-    def energy(self, x):
+    def energy(self, x, count=False):
+        
+        if count:
+            self.energy_call_count += x.shape[0]
+        
         return -self.gmm.log_prob(x).flatten()
 
     def sample(self, batch_size):

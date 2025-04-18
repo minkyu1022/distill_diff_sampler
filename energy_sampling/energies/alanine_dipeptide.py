@@ -59,6 +59,8 @@ class AlanineDipeptide(BaseSet):
         ).squeeze()
 
         self.approx_sample = torch.load(DATA_PATH / "exact_sample.pt")
+        
+        self.energy_call_count = 0
 
     def _init_openmm_context(self):
         # Load the force field file (describing amber99)
@@ -81,9 +83,12 @@ class AlanineDipeptide(BaseSet):
             Platform.getPlatformByName("CUDA"),
         )
 
-    def energy(self, x: torch.Tensor):
+    def energy(self, x: torch.Tensor, count=False):
         if self.shift:
             x = x + self.minimum_energy_position
+        
+        if count:
+            self.energy_call_count += x.shape[0]
 
         energy = self.energy_and_force(x.detach().cpu())[0]
         return energy.to(x.device)

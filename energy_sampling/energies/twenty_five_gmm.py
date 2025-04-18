@@ -29,8 +29,9 @@ class TwentyFiveGaussianMixture(BaseSet):
     def gt_logz(self):
         return 0.
 
-    def energy(self, x):
-        self.energy_call_count += 1
+    def energy(self, x, count=False):
+        if count:
+            self.energy_call_count += x.shape[0]
         log_prob = torch.logsumexp(torch.stack([mvn.log_prob(x) for mvn in self.gmm]), dim=0,
                            keepdim=False) - torch.log(torch.tensor(self.nmode, device=self.device))
         return -log_prob

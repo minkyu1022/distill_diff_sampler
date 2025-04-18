@@ -4,7 +4,7 @@ for i in {0..3}; do
   
   echo "Running seed=${SEEDS[$i]} on GPU $i..."
   
-  CUDA_VISIBLE_DEVICES=$i python energy_sampling/train.py \
+  CUDA_VISIBLE_DEVICES=$i python energy_sampling/train_baseline.py \
     --method TB+LP \
     --t_scale 1.0 \
     --energy many_well_32 \

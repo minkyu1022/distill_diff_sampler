@@ -7,7 +7,7 @@ from einops import rearrange
 
 
 def get_figure(bounds=(-10., 10.)):
-    fig, ax = plt.subplots(1, figsize=(16, 16))
+    fig, ax = plt.subplots(1, figsize=(10, 10))
     ax.axis('off')
     ax.set_autoscale_on(False)
     ax.set_xlim([bounds[0], bounds[1]])

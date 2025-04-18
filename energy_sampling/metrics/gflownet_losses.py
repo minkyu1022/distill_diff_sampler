@@ -5,7 +5,7 @@ from torch.distributions import Normal
 def fwd_tb(initial_state, gfn, log_reward_fn, exploration_std=None, return_exp = False):
     states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_fwd(initial_state, exploration_std, log_reward_fn)
     with torch.no_grad():
-        log_r = log_reward_fn(states[:, -1]).detach()
+        log_r = log_reward_fn(states[:, -1], count=True).detach()
 
     loss = 0.5 * ((log_pfs.sum(-1) + log_fs[:, 0] - log_pbs.sum(-1) - log_r) ** 2)
     if return_exp:
@@ -21,16 +21,16 @@ def bwd_tb(initial_state, initial_reward, gfn, log_reward_fn, exploration_std=No
     #     log_r = log_reward_fn(states[:, -1]).detach()
     
     with torch.no_grad():
-        initial_reward = initial_reward.detach()
+        log_r = initial_reward.detach()
 
-    loss = 0.5 * ((log_pfs.sum(-1) + log_fs[:, 0] - log_pbs.sum(-1) - initial_reward) ** 2)
+    loss = 0.5 * ((log_pfs.sum(-1) + log_fs[:, 0] - log_pbs.sum(-1) - log_r) ** 2)
     return loss.mean()
 
 
 def fwd_tb_avg(initial_state, gfn, log_reward_fn, exploration_std=None, return_exp = False):
     states, log_pfs, log_pbs, _ = gfn.get_trajectory_fwd(initial_state, exploration_std, log_reward_fn)
     with torch.no_grad():
-        log_r = log_reward_fn(states[:, -1]).detach()
+        log_r = log_reward_fn(states[:, -1], count=True).detach()
 
     log_Z = (log_r + log_pbs.sum(-1) - log_pfs.sum(-1)).mean(dim=0, keepdim=True)
     loss = log_Z + (log_pfs.sum(-1) - log_r - log_pbs.sum(-1))
@@ -41,10 +41,10 @@ def fwd_tb_avg(initial_state, gfn, log_reward_fn, exploration_std=None, return_e
         
         return 0.5 * (loss ** 2).mean()
 
-def bwd_tb_avg(initial_state, gfn, log_reward_fn, exploration_std=None):
+def bwd_tb_avg(initial_state, initial_reward, gfn, log_reward_fn, exploration_std=None):
     states, log_pfs, log_pbs, _ = gfn.get_trajectory_bwd(initial_state, exploration_std, log_reward_fn)
     with torch.no_grad():
-        log_r = log_reward_fn(states[:, -1]).detach()
+        log_r = initial_reward.detach()
 
     log_Z = (log_r + log_pbs.sum(-1) - log_pfs.sum(-1)).mean(dim=0, keepdim=True)
     loss = log_Z + (log_pfs.sum(-1) - log_r - log_pbs.sum(-1))
@@ -54,7 +54,7 @@ def bwd_tb_avg(initial_state, gfn, log_reward_fn, exploration_std=None):
 def db(initial_state, gfn, log_reward_fn, exploration_std=None, return_exp = False):
     states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_fwd(initial_state, exploration_std, log_reward_fn)
     with torch.no_grad():
-        log_fs[:, -1] = log_reward_fn(states[:, -1]).detach()
+        log_fs[:, -1] = log_reward_fn(states[:, -1], count=True).detach()
 
     loss = 0.5 * ((log_pfs + log_fs[:, :-1] - log_pbs - log_fs[:, 1:]) ** 2).sum(-1)
     if return_exp:
@@ -67,7 +67,7 @@ def db(initial_state, gfn, log_reward_fn, exploration_std=None, return_exp = Fal
 def subtb(initial_state, gfn, log_reward_fn, coef_matrix, exploration_std=None, return_exp = False):
     states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_fwd(initial_state, exploration_std, log_reward_fn)
     with torch.no_grad():
-        log_fs[:, -1] = log_reward_fn(states[:, -1]).detach()
+        log_fs[:, -1] = log_reward_fn(states[:, -1], count=True).detach()
 
     diff_logp = log_pfs - log_pbs
     diff_logp_padded = torch.cat(
@@ -85,7 +85,7 @@ def subtb(initial_state, gfn, log_reward_fn, coef_matrix, exploration_std=None, 
 
 
 
-def bwd_mle(samples, gfn, log_reward_fn, exploration_std=None):
+def bwd_mle(samples, initial_reward, gfn, log_reward_fn, exploration_std=None):
     states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_bwd(samples, exploration_std, log_reward_fn)
     loss = -log_pfs.sum(-1)
     return loss.mean()
@@ -94,7 +94,7 @@ def bwd_mle(samples, gfn, log_reward_fn, exploration_std=None):
 def pis(initial_state, gfn, log_reward_fn, exploration_std=None, return_exp = False):
     states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_fwd(initial_state, exploration_std, log_reward_fn, pis=True)
     with torch.enable_grad():
-        log_r = log_reward_fn(states[:, -1])
+        log_r = log_reward_fn(states[:, -1], count=True)
 
     normalization_constant = float(1 / initial_state.shape[-1])
     loss = normalization_constant * (log_pfs.sum(-1) - log_pbs.sum(-1) - log_r)

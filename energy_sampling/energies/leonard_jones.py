@@ -40,10 +40,15 @@ class LennardJonesEnergy(BaseSet):
         self.oscillator_scale = oscillator_scale
 
         self.energy_factor = energy_factor
+        
+        self.energy_call_count = 0
 
-    def energy(self, x: torch.Tensor):
+    def energy(self, x: torch.Tensor, count=False):
         assert x.shape[-1] == self.ndim
-
+        
+        if count:
+            self.energy_call_count += x.shape[0]
+        
         # dists is a tensor of shape [..., n_particles * (n_particles - 1) // 2]
         dists = interatomic_distance(x, self.n_particles, self.spatial_dim)
 

@@ -26,6 +26,8 @@ class Gaussian(BaseSet):
         self.log_two_pi = np.log(2 * np.pi)
 
         self.log_coeff = (dim / 2) * (self.log_two_pi + self.logvar)
+        
+        self.energy_call_count = 0
 
     @property
     def var(self):
@@ -41,8 +43,12 @@ class Gaussian(BaseSet):
     def sample(self, batch_size):
         return torch.randn((batch_size, self.dim), device=self.device) * self.sigma
 
-    def energy(self, x):
+    def energy(self, x, count=False):
         assert x.shape[-1] == self.dim
+        
+        if count:
+            self.energy_call_count += x.shape[0]
+        
         return 0.5 * (x**2).sum(-1) / self.var + self.log_coeff
 
     def score(self, x):

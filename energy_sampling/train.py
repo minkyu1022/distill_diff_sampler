@@ -325,7 +325,7 @@ def bwd_train_step(energy, gfn_model, rnd_model, buffer, buffer_ls, exploration_
     return loss, rnd_loss
 
 
-def train(name, energy, buffer, buffer_ls, epoch_offset, log_Z_est=None, pre_gfn=None, pre_rnd=None):
+def train(name, energy, buffer, buffer_ls, epoch_offset, log_Z_est=None, pre_gfn=None):
     
     eval_data = energy.sample(eval_data_size).to(device)
     
@@ -342,10 +342,7 @@ def train(name, energy, buffer, buffer_ls, epoch_offset, log_Z_est=None, pre_gfn
                 pis_architectures=args.pis_architectures, lgv_layers=args.lgv_layers,
                 joint_layers=args.joint_layers, zero_init=args.zero_init, device=device).to(device)
     
-    if pre_rnd is not None:
-        rnd_model = pre_rnd
-    else:
-        rnd_model = RNDModel(input_dim=energy.data_ndim, feature_dim=energy.data_ndim, device=device).to(device)
+    rnd_model = RNDModel(input_dim=energy.data_ndim, feature_dim=energy.data_ndim, device=device).to(device)
     
     
     if log_Z_est is not None:
@@ -386,6 +383,17 @@ def train(name, energy, buffer, buffer_ls, epoch_offset, log_Z_est=None, pre_gfn
             if i % 1000 == 0:
                 torch.save(gfn_model.state_dict(), f'{name}model.pt')
                 torch.save(rnd_model.state_dict(), f'{name}rnd_model.pt')
+                
+        if i % (args.epochs // 100) == 0:
+            check_point_path = f'sample_eff_check_points/{args.energy}/{args.method}/seed_{args.seed}/{epoch_offset+i}_epochs.pt'
+            os.makedirs(os.path.dirname(check_point_path), exist_ok=True)
+            
+            combined_data = {
+                "energy_call_count": energy.energy_call_count,
+                "metrics": metrics
+            }
+            
+            torch.save(combined_data, check_point_path)
 
     eval_results = final_eval(energy, gfn_model)
     metrics.update(eval_results)
@@ -405,6 +413,8 @@ def final_eval(energy, gfn_model):
 def teacher_sampling(mode_teacher, buffer, energy, expl_model=None):
     
     if mode_teacher == 'ais':
+        print("Annealed Importance Sampling ...")
+        
         batch_size = 3000
         
         if expl_model is not None:
@@ -412,7 +422,7 @@ def teacher_sampling(mode_teacher, buffer, energy, expl_model=None):
             iter_teacher = 100
         else:
             iter_teacher = 200
-   
+        
         for i in trange(iter_teacher, desc="AIS sampling"):
             
             prior = Gaussian(device=device, dim=energy.data_ndim, std=1.0)
@@ -425,9 +435,15 @@ def teacher_sampling(mode_teacher, buffer, energy, expl_model=None):
             
             
             buffer.add(samples.detach().cpu(), rewards.detach().cpu())
+        
+            del samples
+            del rewards
+            torch.cuda.empty_cache()
             
         if expl_model is not None:
             expl_model.train()
+        
+        print("Teacher sampling complete")
         
     elif mode_teacher == 'mala':
         pass
@@ -483,7 +499,7 @@ if __name__ == '__main__':
                 # args.rank_weight = 5e-2
                 
                 if args.student_mode == 'reinit':
-                    student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=student_model.flow_model, pre_gfn=None, pre_rnd=rnd_model)
+                    student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=student_model.flow_model, pre_gfn=None)
                     print(f"After TB, total energy calls: {energy.energy_call_count}")
                 
                 elif args.student_mode == 'partialinit':
@@ -492,11 +508,11 @@ if __name__ == '__main__':
                         if hasattr(module, 'reset_parameters'):
                             module.reset_parameters()
                     
-                    student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=student_model.flow_model, pre_model=student_model, pre_rnd=rnd_model)
+                    student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=student_model.flow_model, pre_gfn=student_model)
                     print(f"After TB, total energy calls: {energy.energy_call_count}")
                     
                 elif args.student_mode == 'finetune':
-                    student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=student_model.flow_model, pre_model=student_model, pre_rnd=rnd_model)
+                    student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=student_model.flow_model, pre_gfn=student_model)
                     print(f"After TB, total energy calls: {energy.energy_call_count}")
                     
                 else:

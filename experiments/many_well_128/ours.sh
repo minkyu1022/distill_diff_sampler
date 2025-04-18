@@ -1,4 +1,4 @@
-SEEDS=(12345 34567 45678 78901)
+SEEDS=(12345 34567 45678 67890)
 
 for i in {0..3}; do
   
@@ -6,7 +6,7 @@ for i in {0..3}; do
   
   CUDA_VISIBLE_DEVICES=$i python energy_sampling/train.py \
     --method current_ours \
-    --round 3 \
+    --round 2 \
     --teacher ais \
     --t_scale 1.0 \
     --energy many_well_128 \

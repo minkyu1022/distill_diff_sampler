@@ -95,9 +95,9 @@ def get_gfn_backward_loss(mode, samples, rewards, gfn_model, log_reward, explora
     if mode == 'tb':
         loss = bwd_tb(samples, rewards, gfn_model, log_reward, exploration_std)
     elif mode == 'tb-avg':
-        loss = bwd_tb_avg(samples, gfn_model, log_reward, exploration_std)
+        loss = bwd_tb_avg(samples, rewards, gfn_model, log_reward, exploration_std)
     elif mode == 'mle':
-        loss = bwd_mle(samples, gfn_model, log_reward, exploration_std)
+        loss = bwd_mle(samples, rewards, gfn_model, log_reward, exploration_std)
     return loss
 
 
@@ -114,15 +114,18 @@ def get_exploration_std(iter, exploratory, exploration_factor=0.1, exploration_w
 
 def get_name(args):
     name = ''
+    
+    name = f'{args.method}_'
+    
     if args.langevin:
-        name = f'langevin_'
+        name = f'{name}langevin_'
         if args.langevin_scaling_per_dimension:
-            name = f'langevin_scaling_per_dimension_'
+            name = f'{name}langevin_scaling_per_dimension_'
     if args.exploratory and (args.exploration_factor is not None):
         if args.exploration_wd:
-            name = f'exploration_wd_{args.exploration_factor}_{name}_'
+            name = f'{name}exploration_wd_{args.exploration_factor}_{name}_'
         else:
-            name = f'exploration_{args.exploration_factor}_{name}_'
+            name = f'{name}exploration_{args.exploration_factor}_{name}_'
 
     if args.learn_pb:
         name = f'{name}learn_pb_scale_range_{args.pb_scale_range}_'

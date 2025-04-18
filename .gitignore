@@ -1,5 +1,6 @@
 wandb/
 results_pis_architectures/
+sample_eff_check_points/
 true_data/
 energy_sampling/results_pis_architectures/
 energy_sampling/teacher_buffer/

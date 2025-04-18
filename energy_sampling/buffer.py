@@ -116,7 +116,7 @@ class ReplayBuffer():
         if self.prioritized == 'rank':
             self.scores_np = self.reward_dataset.get_tsrs().detach().cpu().view(-1).numpy()
             ranks = np.argsort(np.argsort(-1 * self.scores_np))
-            weights = 1.0 / (1e-2 * len(self.scores_np) + ranks)
+            weights = 1.0 / (self.rank_weight * len(self.scores_np) + ranks)
             self.dataset = ZipDataset(self.sample_dataset,self.reward_dataset)
             self.sampler = torch.utils.data.WeightedRandomSampler(
                     weights=weights, num_samples=len(self.scores_np), replacement=True

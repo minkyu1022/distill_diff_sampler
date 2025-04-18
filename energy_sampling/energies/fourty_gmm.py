@@ -68,8 +68,10 @@ class FourtyGaussianMixture(BaseSet):
     def gt_logz(self):
         return 0.
 
-    def energy(self, x):
-        self.energy_call_count += 1
+    def energy(self, x, count=False):
+        if count:
+            self.energy_call_count += x.shape[0]
+            
         return -self.gmm.log_prob(x).flatten()
 
     def sample(self, batch_size):

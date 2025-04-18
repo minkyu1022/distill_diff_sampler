@@ -23,12 +23,18 @@ class EasyFunnel(BaseSet):
         self.dist_dominant = D.Normal(torch.tensor([0.0]).to(self.device), torch.tensor([1.0]).to(self.device))
         self.mean_other = torch.zeros(self.data_ndim - 1).float().to(self.device)
         self.cov_eye = torch.eye(self.data_ndim - 1).float().to(self.device).view(1, self.data_ndim - 1, self.data_ndim - 1)
+        
+        self.energy_call_count = 0
 
 
     def gt_logz(self):
         return 0.
 
-    def energy(self, x):
+    def energy(self, x, count=False):
+        
+        if count:
+            self.energy_call_count += x.shape[0]
+        
         return -self.funnel_log_pdf(x)
     
     def funnel_log_pdf(self, x):
