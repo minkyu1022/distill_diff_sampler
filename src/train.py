@@ -8,10 +8,9 @@ from tqdm import trange
 # from teacher import Teacher
 from buffer import ReplayBuffer
 from models import GFN, RNDModel
-from langevin import langevin_dynamics
 
-from md import MD
 from utils import *
+from teachers import *
 from energies import *
 from plot_utils import *
 from metrics.evaluations import *
@@ -27,7 +26,7 @@ parser.add_argument('--project', type=str, default='aldp')
 
 # Dataset config
 parser.add_argument('--data_dir', type=str, default='')
-parser.add_argument('--teacher', type=str, default='md', choices=('md'))
+parser.add_argument('--teacher', type=str, default='md', choices=('md', 'mala'))
 parser.add_argument('--energy', type=str, default='aldp', choices=('aldp', 'lj13', 'lj55'))
 
 ## MD config
@@ -45,26 +44,32 @@ parser.add_argument('--s_emb_dim', type=int, default=64)
 parser.add_argument('--t_emb_dim', type=int, default=64)
 parser.add_argument('--hidden_dim', type=int, default=64)
 parser.add_argument('--harmonics_dim', type=int, default=64)
+parser.add_argument('--target_hidden_dim', type=int, default=32)
+parser.add_argument('--predictor_hidden_dim', type=int, default=64)
+
 
 ## Layers
-parser.add_argument('--lgv_layers', type=int, default=3)
+parser.add_argument('--lgv_layers', type=int, default=5)
 parser.add_argument('--joint_layers', type=int, default=5)
 parser.add_argument('--zero_init', action='store_true', default=False)
+parser.add_argument('--target_layers', type=int, default=2)
+parser.add_argument('--predictor_layers', type=int, default=3)
 
 # Training config
 parser.add_argument('--round', type=int, default=1)
 parser.add_argument('--epochs', type=int, default=20000)
-parser.add_argument('--lr_flow', type=float, default=1e-2)
+parser.add_argument('--batch_size', type=int, default=32)
+parser.add_argument('--lr_rnd', type=float, default=1e-3)
+parser.add_argument('--lr_flow', type=float, default=1e-3)
 parser.add_argument('--lr_back', type=float, default=5e-4)
 parser.add_argument('--lr_policy', type=float, default=5e-4)
-parser.add_argument('--lr_rnd', type=float, default=1e-3)
-parser.add_argument('--batch_size', type=int, default=32)
+parser.add_argument('--max_grad_norm', type=float, default=-1)
 parser.add_argument('--weight_decay', type=float, default=1e-4)
 parser.add_argument('--use_weight_decay', action='store_true', default=False)
 
 ## GFN
 parser.add_argument('--T', type=int, default=100)
-parser.add_argument('--t_scale', type=float, default=0.1)
+parser.add_argument('--t_scale', type=float, default=0.2)
 parser.add_argument('--lgv_clip', type=float, default=1e2)
 parser.add_argument('--gfn_clip', type=float, default=1e4)
 parser.add_argument('--subtb_lambda', type=int, default=2)
@@ -73,7 +78,7 @@ parser.add_argument('--log_var_range', type=float, default=4.)
 parser.add_argument('--sigma_min', type=float, default=0.00001)
 parser.add_argument('--pb_scale_range', type=float, default=0.1)
 parser.add_argument('--bwd', action='store_true', default=False)
-parser.add_argument('--exploration_factor', type=float, default=0.1)
+parser.add_argument('--exploration_factor', type=float, default=1e9)
 parser.add_argument('--langevin', action='store_true', default=False)
 parser.add_argument('--clipping', action='store_true', default=False)
 parser.add_argument('--learn_pb', action='store_true', default=False)
@@ -90,18 +95,19 @@ parser.add_argument('--mode_fwd', type=str, default="tb", choices=('tb', 'tb-avg
 parser.add_argument('--student_init', type=str, default='reinit', choices=('reinit', 'partialinit','finetune'))
 
 ## Local search
-parser.add_argument('--burn_in', type=int, default=100)
+parser.add_argument('--burn_in', type=int, default=15000)
 parser.add_argument('--ls_cycle', type=int, default=100)
-parser.add_argument('--ld_step', type=float, default=0.001)
-parser.add_argument('--max_iter_ls', type=int, default=200)
+parser.add_argument('--ld_step', type=float, default=0.00001)
+parser.add_argument('--max_iter_ls', type=int, default=20000)
 parser.add_argument('--ld_schedule', action='store_true', default=False)
 parser.add_argument('--local_search', action='store_true', default=False)
 parser.add_argument('--target_acceptance_rate', type=float, default=0.574)
+parser.add_argument('--prior_std', type=float, default=1.75)
 
 ## Replay buffer
 parser.add_argument('--beta', type=float, default=1.)
 parser.add_argument('--rank_weight', type=float, default=1e-2)
-parser.add_argument('--buffer_size', type=int, default=1200000)
+parser.add_argument('--buffer_size', type=int, default=600000)
 parser.add_argument('--prioritized', type=str, default="rank", choices=('none', 'reward', 'rank'))
 parser.add_argument('--sampling', type=str, default="buffer", choices=('sleep_phase', 'energy', 'buffer'))
 
@@ -128,6 +134,13 @@ def get_energy():
     elif args.energy == 'lj55':
         energy = LJ55(args)
     return energy
+
+def get_teacher():
+    if args.teacher == 'md':
+        teacher = MD(args, energy)
+    elif args.teacher == 'mala':
+        teacher = MALA(args, energy)
+    return teacher
 
 def eval(energy, buffer, gfn_model, final=False):
     eval_dir = 'final_eval' if final else 'eval'
@@ -194,6 +207,8 @@ def train_step(energy, gfn_model, gfn_optimizer, rnd_model, rnd_optimizer, it, e
         loss = fwd_train_step(energy, gfn_model, exploration_std)
 
     loss.backward()
+    if args.max_grad_norm > 0:
+        torch.nn.utils.clip_grad_norm_(gfn_model.parameters(), max_norm=args.max_grad_norm)
     gfn_optimizer.step()
     
     if args.mode_bwd == 'tb' and args.both_ways:
@@ -237,7 +252,7 @@ def bwd_train_step(energy, gfn_model, rnd_model, buffer, buffer_ls, exploration_
     
     return loss, rnd_loss
 
-def train(name, energy, buffer, buffer_ls, epoch_offset, log_Z_est=None, pre_model=None):
+def train(name, energy, buffer, buffer_ls, epoch_offset, log_Z_est=None):
     gfn_losses = []
     rnd_losses = []
     elbos = []
@@ -267,7 +282,6 @@ def train(name, energy, buffer, buffer_ls, epoch_offset, log_Z_est=None, pre_mod
             flow_data = torch.nn.Parameter(flow_data)
         
         gfn_model.flow_model = flow_data
-
 
     gfn_optimizer = get_gfn_optimizer(args.architecture, gfn_model, args.lr_policy, args.lr_flow, args.lr_back, args.learn_pb,
                                       args.conditional_flow_model, args.use_weight_decay, args.weight_decay)
@@ -332,6 +346,7 @@ if __name__ == '__main__':
     wandb.run.log_code(".")
 
     energy = get_energy()
+    teacher = get_teacher()
     
     buffer = ReplayBuffer(args.buffer_size, 'cpu', energy.log_reward, args.batch_size, data_ndim=energy.data_ndim, beta=args.beta,
                           rank_weight=args.rank_weight, prioritized=args.prioritized)
@@ -339,23 +354,26 @@ if __name__ == '__main__':
                           rank_weight=args.rank_weight, prioritized=args.prioritized)
     
     global_epochs = 0
+
+    # prior = Gaussian(args.device, energy.data_ndim, std=args.prior_std)
+    # initial_positions = prior.sample(args.teacher_batch_size).to(args.device)
+    # samples, rewards = teacher.sample(initial_positions)
     
     if args.data_dir:
-        buffer.load_data(args.data_dir)
-
-    # teacher = MD(args, energy)
-    # initial_positions = energy.initial_position.repeat(args.teacher_batch_size, 1).to(args.device)
-    # samples, rewards, flow = teacher(initial_positions)
+        log_Z_est = buffer.load_data(args.data_dir, return_flow=True)
     
-    gfn_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=None)
+    gfn_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=log_Z_est)
     
     if args.mode_bwd == 'tb' and args.both_ways:
         torch.save(gfn_model.state_dict(), f'{name}/inter_policy.pt')
         torch.save(rnd_model.state_dict(), f'{name}/inter_rnd.pt')
 
-        teacher = MD(args, energy)
-        initial_positions = buffer.sample_pos(args.teacher_batch_size).to(args.device)
-        samples, rewards, flow = teacher(initial_positions, expl_model=rnd_model)
+        if args.energy == 'aldp':
+            initial_positions = buffer.sample_pos(args.teacher_batch_size).to(args.device)
+        if args.energy in ['lj13', 'lj55']:
+            prior = Gaussian(args.device, energy.data_ndim, std=args.prior_std)
+            initial_positions = prior.sample(args.teacher_batch_size).to(args.device)
+        samples, rewards = teacher.sample(initial_positions, expl_model=rnd_model)
         
         buffer.add(samples.detach().cpu(), rewards.detach().cpu())
         np.save(f'{name}/rnd_positions.npy', samples.cpu().numpy())

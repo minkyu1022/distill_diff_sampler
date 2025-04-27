@@ -21,7 +21,7 @@ parser.add_argument('--project', type=str, default='aldp')
 
 # Dataset config
 parser.add_argument('--data_dir', type=str, default='')
-parser.add_argument('--t_scale', type=float, default=0.1)
+parser.add_argument('--t_scale', type=float, default=0.2)
 parser.add_argument("--temperature", default=300, type=float)
 parser.add_argument('--log_var_range', type=float, default=4.)
 parser.add_argument('--energy', type=str, default='aldp', choices=('aldp'))
@@ -161,7 +161,7 @@ if __name__ == '__main__':
             joint_layers=args.joint_layers, zero_init=args.zero_init, device=args.device, 
             scheduler=args.scheduler, sigma_max=args.sigma_max, sigma_min=args.sigma_min).to(args.device)
     
-    gfn_model.load_state_dict(torch.load(f'result/{args.date}/policy_10000.pt'), strict=False)
+    gfn_model.load_state_dict(torch.load(f'result/{args.date}/policy_20000.pt'), strict=False)
     gfn_model.eval()
     
     metrics = dict()

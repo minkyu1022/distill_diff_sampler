@@ -82,7 +82,7 @@ class LJ13(LennardJonesEnergy):
             device=args.device,
         )
         self.approx_sample = torch.tensor(
-            np.load(f"data/LJ13.npy"),
+            np.load(f"data/lj13/LJ13.npy"),
             device=args.device,
         )
         self.initial_position = self.approx_sample[0]
@@ -104,7 +104,7 @@ class LJ55(LennardJonesEnergy):
             device=args.device,
         )
         self.approx_sample = torch.tensor(
-            np.load(f"data/LJ55.npy"),
+            np.load(f"data/lj55/LJ55.npy"),
             device=args.device,
         )
         self.initial_position = self.approx_sample[0]

@@ -64,7 +64,7 @@ class ALDP(BaseSet):
         super().__init__()
         self.device = args.device
         
-        molecule = read('data/aldp.pdb')
+        molecule = read('data/aldp/aldp.pdb')
         atomic_numbers = molecule.get_atomic_numbers()
         atomic_symbols = [chemical_symbols[z] for z in atomic_numbers]     
         
@@ -83,8 +83,8 @@ class ALDP(BaseSet):
 
     def load_data(self):
         samples = []
-        for file in sorted(os.listdir(os.path.join('data/md_300_05', 'positions')))[-1000:]:
-            samples.append(np.load(os.path.join('data/md_300_05', 'positions', file)))
+        for file in sorted(os.listdir(os.path.join('data/aldp/md_300_05', 'positions')))[-1000:]:
+            samples.append(np.load(os.path.join('data/aldp/md_300_05', 'positions', file)))
         samples = np.concatenate(samples, axis=0).reshape(-1, self.data_ndim)
         samples = torch.tensor(samples)
         return samples

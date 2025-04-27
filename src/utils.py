@@ -151,7 +151,7 @@ def compute_dihedral(positions):
 
 
 atom_dict = {"C": 0, "H":1, "N":2, "O":3}
-traj = md.load("data/aldp.pdb")
+traj = md.load("data/aldp/aldp.pdb")
 topology = traj.topology
 atom_types = []
 for atom_name in topology.atoms:

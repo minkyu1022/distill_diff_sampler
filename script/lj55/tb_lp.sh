@@ -1,14 +1,14 @@
-CUDA_VISIBLE_DEVICES=3 python src/train.py \
+CUDA_VISIBLE_DEVICES=4 python src/train.py \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
   --project lj55 \
   --data_dir data/lj55/mala \
   --energy lj55 \
   --teacher mala \
-  --exploration_factor 1000000 \
   --max_grad_norm 1.0 \
   --ld_schedule \
   --teacher_batch_size 300 \
-  --batch_size 4 \
-  --both_ways \
+  --langevin \
+  --batch_size 2 \
   --clipping \
   --seed 1
+

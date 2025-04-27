@@ -3,11 +3,9 @@ CUDA_VISIBLE_DEVICES=6 python src/train.py \
   --project lj13 \
   --data_dir data/lj13/mala \
   --energy lj13 \
-  --teacher mala \
-  --exploration_factor 1000000 \
+  --bwd \
+  --mode_bwd mle \
   --max_grad_norm 1.0 \
   --teacher_batch_size 300 \
-  --ld_schedule \
-  --both_ways \
   --clipping \
   --seed 1

@@ -93,10 +93,9 @@ class ReplayBuffer():
         self.rank_weight = rank_weight
         # self.sampled_rewards = []
 
-    def load_data(self, data_dir):
+    def load_data(self, data_dir, return_flow=False):
         samples = []
         rewards = []
-        # for file in sorted(os.listdir(os.path.join(data_dir, 'positions')))[800:1800]: # aldp
         for file in sorted(os.listdir(os.path.join(data_dir, 'positions')))[:1000]:
             samples.append(np.load(os.path.join(data_dir, 'positions', file)))
             rewards.append(np.load(os.path.join(data_dir, 'rewards', file)))
@@ -105,6 +104,10 @@ class ReplayBuffer():
         samples = torch.tensor(samples)
         rewards = torch.tensor(rewards)
         self.add(samples, rewards)
+        print(len(samples))
+        if return_flow:
+            log_Z_est = torch.logsumexp(rewards, dim=0) - torch.log(torch.tensor(len(rewards)))
+            return log_Z_est
     
     def add(self, samples, log_r):
         if self.reward_dataset is None:

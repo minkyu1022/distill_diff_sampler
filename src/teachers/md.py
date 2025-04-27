@@ -1,8 +1,9 @@
 import torch
 import numpy as np
 from tqdm import trange
+from .base_set import BaseSet
 
-class MD:
+class MD(BaseSet):
     def __init__(self, args, energy):   
         self.energy = energy  
         self.gamma = args.gamma   
@@ -19,7 +20,7 @@ class MD:
         self.mass = energy.mass
         self.std = torch.sqrt(2 * kBT * self.gamma * self.timestep / self.mass)
 
-    def __call__(self, initial_position, expl_model=None):
+    def sample(self, initial_position, expl_model=None):
         positions = []
         rewards = []
         
@@ -32,17 +33,15 @@ class MD:
         for i in trange(self.n_steps):
             position, velocity, force = self.step(position, velocity, force, expl_model)
             if i % 100 == 0:
-                reward = -self.energy.energy(position.reshape(self.batch_size, -1))
+                reward = self.energy.log_reward(position.reshape(self.batch_size, -1))
                 positions.append(position.detach().cpu())
                 rewards.append(reward.detach().cpu())
-                # np.save(f'data/lj55_300/positions/{i}.npy', position.cpu().numpy())
-                # np.save(f'data/lj55_300/rewards/{i}.npy', reward.detach().cpu().numpy())
             
         positions = torch.stack(positions, dim=0)
         rewards = torch.stack(rewards, dim=0)
         positions = positions.reshape(-1, self.energy.data_ndim)
         rewards = rewards.reshape(-1)
-        return positions.detach(), rewards.detach(), None
+        return positions.detach(), rewards.detach()
 
     def step(self, position, velocity, force, expl_model=None):
         with torch.no_grad():
