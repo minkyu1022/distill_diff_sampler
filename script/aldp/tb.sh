@@ -3,5 +3,5 @@ CUDA_VISIBLE_DEVICES=7 python src/train.py \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
   --project aldp \
   --energy aldp \
-  --batch_size 16 \
+  --epochs 30000 \
   --clipping \

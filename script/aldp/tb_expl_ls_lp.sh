@@ -5,10 +5,11 @@ CUDA_VISIBLE_DEVICES=3 python src/train.py \
   --teacher mala \
   --energy aldp \
   --langevin \
-  --both_ways \
   --local_search \
-  --max_iter_ls 200 \
+  --both_ways \
   --burn_in 100 \
+  --max_iter_ls 4000 \
+  --teacher_batch_size 200 \
   --ld_schedule \
   --exploratory \
   --exploration_wd \

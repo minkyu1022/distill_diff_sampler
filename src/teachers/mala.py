@@ -73,6 +73,6 @@ class MALA(BaseSet):
                     total_proposals = 0
 
         sample = torch.cat(accepted_samples, dim=0)
-        log_r = self.energy.log_reward(sample)
+        log_r = torch.cat(accepted_logr, dim=0)
         print(f"{sample.shape[0]} samples accepted")
         return sample, log_r

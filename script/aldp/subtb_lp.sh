@@ -7,5 +7,5 @@ CUDA_VISIBLE_DEVICES=2 python src/train.py \
   --langevin \
   --partial_energy \
   --conditional_flow_model \
-  --batch_size 16 \
+  --batch_size 8 \
   --clipping \

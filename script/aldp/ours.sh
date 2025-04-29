@@ -4,4 +4,5 @@ CUDA_VISIBLE_DEVICES=0 python src/train.py \
   --data_dir data/aldp/md \
   --energy aldp \
   --both_ways \
+  --epochs 10000 \
   --clipping \
