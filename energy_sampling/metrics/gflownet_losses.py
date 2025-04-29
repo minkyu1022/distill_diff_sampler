@@ -3,7 +3,7 @@ from torch.distributions import Normal
 
 
 def fwd_tb(initial_state, gfn, log_reward_fn, exploration_std=None, return_exp = False):
-    states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_fwd(initial_state, exploration_std, log_reward_fn)
+    states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_fwd(initial_state, exploration_std, log_reward_fn, count=True)
     with torch.no_grad():
         log_r = log_reward_fn(states[:, -1], count=True).detach()
 
@@ -16,7 +16,7 @@ def fwd_tb(initial_state, gfn, log_reward_fn, exploration_std=None, return_exp =
 
 
 def bwd_tb(initial_state, initial_reward, gfn, log_reward_fn, exploration_std=None):
-    states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_bwd(initial_state, exploration_std, log_reward_fn)
+    states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_bwd(initial_state, exploration_std, log_reward_fn, count=True)
     # with torch.no_grad():
     #     log_r = log_reward_fn(states[:, -1]).detach()
     
@@ -28,7 +28,7 @@ def bwd_tb(initial_state, initial_reward, gfn, log_reward_fn, exploration_std=No
 
 
 def fwd_tb_avg(initial_state, gfn, log_reward_fn, exploration_std=None, return_exp = False):
-    states, log_pfs, log_pbs, _ = gfn.get_trajectory_fwd(initial_state, exploration_std, log_reward_fn)
+    states, log_pfs, log_pbs, _ = gfn.get_trajectory_fwd(initial_state, exploration_std, log_reward_fn, count=True)
     with torch.no_grad():
         log_r = log_reward_fn(states[:, -1], count=True).detach()
 
@@ -42,7 +42,7 @@ def fwd_tb_avg(initial_state, gfn, log_reward_fn, exploration_std=None, return_e
         return 0.5 * (loss ** 2).mean()
 
 def bwd_tb_avg(initial_state, initial_reward, gfn, log_reward_fn, exploration_std=None):
-    states, log_pfs, log_pbs, _ = gfn.get_trajectory_bwd(initial_state, exploration_std, log_reward_fn)
+    states, log_pfs, log_pbs, _ = gfn.get_trajectory_bwd(initial_state, exploration_std, log_reward_fn, count=True)
     with torch.no_grad():
         log_r = initial_reward.detach()
 
@@ -52,7 +52,7 @@ def bwd_tb_avg(initial_state, initial_reward, gfn, log_reward_fn, exploration_st
 
 
 def db(initial_state, gfn, log_reward_fn, exploration_std=None, return_exp = False):
-    states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_fwd(initial_state, exploration_std, log_reward_fn)
+    states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_fwd(initial_state, exploration_std, log_reward_fn, count=True)
     with torch.no_grad():
         log_fs[:, -1] = log_reward_fn(states[:, -1], count=True).detach()
 
@@ -65,7 +65,7 @@ def db(initial_state, gfn, log_reward_fn, exploration_std=None, return_exp = Fal
 
 
 def subtb(initial_state, gfn, log_reward_fn, coef_matrix, exploration_std=None, return_exp = False):
-    states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_fwd(initial_state, exploration_std, log_reward_fn)
+    states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_fwd(initial_state, exploration_std, log_reward_fn, count=True)
     with torch.no_grad():
         log_fs[:, -1] = log_reward_fn(states[:, -1], count=True).detach()
 
@@ -86,13 +86,13 @@ def subtb(initial_state, gfn, log_reward_fn, coef_matrix, exploration_std=None, 
 
 
 def bwd_mle(samples, initial_reward, gfn, log_reward_fn, exploration_std=None):
-    states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_bwd(samples, exploration_std, log_reward_fn)
+    states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_bwd(samples, exploration_std, log_reward_fn, count=True)
     loss = -log_pfs.sum(-1)
     return loss.mean()
 
 
 def pis(initial_state, gfn, log_reward_fn, exploration_std=None, return_exp = False):
-    states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_fwd(initial_state, exploration_std, log_reward_fn, pis=True)
+    states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_fwd(initial_state, exploration_std, log_reward_fn, count=True, pis=True)
     with torch.enable_grad():
         log_r = log_reward_fn(states[:, -1], count=True)
 

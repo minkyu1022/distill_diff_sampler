@@ -29,6 +29,8 @@ class LennardJonesEnergy(BaseSet):
     ):
         super().__init__()
 
+        self.device = device
+        
         self.spatial_dim = spatial_dim
         self.n_particles = n_particles
         self.data_ndim = self.spatial_dim * self.n_particles
@@ -64,7 +66,7 @@ class LennardJonesEnergy(BaseSet):
 
         return lj_energies
 
-    def _generate_sample(self, batch_size: int):
+    def sample(self, batch_size: int):
         raise NotImplementedError
 
     def remove_mean(self, x: torch.Tensor):
@@ -86,14 +88,14 @@ class LJ13(LennardJonesEnergy):
             device=device,
         )
         self.approx_sample = torch.tensor(
-            np.load(f"energy_sampling/energies/data/LJ13.npy"),
+            np.load(f"energies/data/LJ13.npy"),
             device=device,
         )
         
     def gt_logz(self):
         raise NotImplementedError
 
-    def _generate_sample(self, batch_size: int):
+    def sample(self, batch_size: int):
         return self.approx_sample[torch.randperm(batch_size)]
 
 
@@ -107,12 +109,12 @@ class LJ55(LennardJonesEnergy):
             device=device,
         )
         self.approx_sample = torch.tensor(
-            np.load(f"energy_sampling/energies/data/LJ55.npy"),
+            np.load(f"energies/data/LJ55.npy"),
             device=device,
         )
         
     def gt_logz(self):
         raise NotImplementedError
 
-    def _generate_sample(self, batch_size: int):
+    def sample(self, batch_size: int):
         return self.approx_sample[torch.randperm(batch_size)]

@@ -163,3 +163,18 @@ def viz_contour_sample2d(points, fname, log_prob_func,
             linewidth=0, marker=".", markersize=1.5, alpha=alpha)
 
     return fig, ax
+
+def draw_energy_histogram(
+    ax, log_reward, bins=40, range=(90, 160)
+):
+    log_reward = torch.clamp(log_reward, min=range[0], max=range[1])
+
+    hist, bins = np.histogram(
+        log_reward.detach().cpu().numpy(), bins=bins, range=range, density=True
+    )
+
+    ax.set_xlabel("log reward")
+    ax.set_ylabel("count")
+    ax.grid(True)
+
+    return ax.plot(bins[1:], hist, linewidth=3)

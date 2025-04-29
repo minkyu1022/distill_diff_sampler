@@ -14,3 +14,12 @@ vae/
 __init__.py
 energy_sampling/many_well_32/
 .vscode/
+energy_sampling/LJ13_mala_samples.pt
+energy_sampling/LJ13_mala_rewards.pt
+energy_sampling/LJ55_mala_samples.pt
+energy_sampling/LJ55_mala_rewards.pt
+40gmm_current_ours_energy_histogram.png
+many_well_32_ours_energy_histogram.png
+many_well_64_current_ours_energy_histogram.png
+many_well_128_current_ours_energy_histogram.png
+final_models/

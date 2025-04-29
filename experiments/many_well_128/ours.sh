@@ -1,4 +1,4 @@
-SEEDS=(12345 34567 45678 67890)
+SEEDS=(23456 56789 78901 89012)
 
 for i in {0..3}; do
   
@@ -29,3 +29,23 @@ done
 wait
 
 echo "All experiments completed!"
+
+# CUDA_VISIBLE_DEVICES=0 python energy_sampling/train.py \
+#   --method current_ours \
+#   --round 2 \
+#   --teacher ais \
+#   --t_scale 1.0 \
+#   --energy many_well_128 \
+#   --pis_architectures \
+#   --zero_init \
+#   --clipping \
+#   --mode_fwd tb \
+#   --mode_bwd tb \
+#   --both_ways \
+#   --lr_policy 1e-3 \
+#   --lr_flow 1e-3 \
+#   --hidden_dim 256 \
+#   --s_emb_dim 256 \
+#   --t_emb_dim 256 \
+#   --seed 12345 \
+#   &

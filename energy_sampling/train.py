@@ -44,7 +44,7 @@ parser.add_argument('--t_scale', type=float, default=1.)
 parser.add_argument('--log_var_range', type=float, default=4.)
 parser.add_argument('--energy', type=str, default='9gmm',
                     choices=('9gmm', '25gmm', '40gmm', 'hard_funnel', 'easy_funnel', 'many_well_32', 'many_well_64', 'many_well_128',
-                             'many_well_512'))
+                             'lj_13', 'lj_55'))
 parser.add_argument('--mode_fwd', type=str, default="tb", choices=('tb', 'tb-avg', 'db', 'subtb', "pis"))
 parser.add_argument('--mode_bwd', type=str, default="tb", choices=('tb', 'tb-avg', 'mle'))
 parser.add_argument('--both_ways', action='store_true', default=False)
@@ -58,6 +58,8 @@ parser.add_argument('--max_iter_ls', type=int, default=200)
 
 # How many iterations to burn in before making local search
 parser.add_argument('--burn_in', type=int, default=100)
+
+parser.add_argument('--prior_std', type=float, default=1.0)
 
 # How frequently to make local search
 parser.add_argument('--ls_cycle', type=int, default=100)
@@ -148,8 +150,10 @@ def get_energy():
         energy = ManyWell(device=device, dim=64)
     elif args.energy == 'many_well_128':
         energy = ManyWell(device=device, dim=128)
-    elif args.energy == 'many_well_512':
-        energy = ManyWell(device=device, dim=512)
+    elif args.energy == 'lj_13':
+        energy = LJ13(device=device)
+    elif args.energy == 'lj_55':
+        energy = LJ55(device=device)
     else:
         raise ValueError(f"Invalid energy: {args.energy}")
     return energy
@@ -425,7 +429,7 @@ def teacher_sampling(mode_teacher, buffer, energy, expl_model=None):
         
         for i in trange(iter_teacher, desc="AIS sampling"):
             
-            prior = Gaussian(device=device, dim=energy.data_ndim, std=1.0)
+            prior = Gaussian(device=device, dim=energy.data_ndim, std=args.prior_std)
             population = prior.sample(batch_size)
             
             if i == iter_teacher - 1:
@@ -446,7 +450,21 @@ def teacher_sampling(mode_teacher, buffer, energy, expl_model=None):
         print("Teacher sampling complete")
         
     elif mode_teacher == 'mala':
-        pass
+        print("Metropolis-adjusted Langevin Sampling ...")
+        
+        batch_size = 300
+        
+        prior = Gaussian(device=device, dim=energy.data_ndim, std=args.prior_std)
+        population = prior.sample(batch_size)
+        
+        samples, rewards = langevin_dynamics(population, energy.log_reward, device, args)
+        buffer.add(samples.detach().cpu(), rewards.detach().cpu())
+
+        del samples
+        del rewards
+        torch.cuda.empty_cache()
+        
+        log_Z_est = None
     
     else:
         raise ValueError(f"Invalid teacher: {args.teacher}")
@@ -487,9 +505,13 @@ if __name__ == '__main__':
         
             if i == 0:
                 teacher_flow = teacher_sampling(args.teacher, buffer, energy)
+                avg_reward = buffer.reward_dataset.get_tsrs().mean()
+                print(f"Average reward: {avg_reward}")
                 print(f"After AIS, total energy calls: {energy.energy_call_count}")
                 
-                student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=teacher_flow)
+                # student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=teacher_flow)
+                student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=avg_reward)
+                
                 print(f"After TB, total energy calls: {energy.energy_call_count}")
         
             else:
@@ -524,7 +546,23 @@ if __name__ == '__main__':
         
         student_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs)
         
-        
+    
+    # Final save
+    
+    final_model_path = f'final_models/{args.energy}/{args.method}/seed_{args.seed}/trained_gfn_model.pt'
+    os.makedirs(os.path.dirname(final_model_path), exist_ok=True) 
+    torch.save(student_model, final_model_path)
+    
+    final_samples = student_model.sample(batch_size=6000, log_r=energy.log_reward)
+    final_rewards = energy.log_reward(final_samples)
+    fig, ax = plt.subplots()
+    model_histogram = draw_energy_histogram(ax, final_rewards, range=(300, 800))
+    model_histogram[0].set_label("Ours")
+    gt_histogram = draw_energy_histogram(ax, energy.log_reward(energy.sample(batch_size=6000)), range=(300, 800))
+    gt_histogram[0].set_label("Ground Truth")
+    ax.legend()
+    fig.savefig(f"{args.energy}_{args.method}_energy_histogram.png")
+    
     print("Global epochs : ", global_epochs)
     
     print(f"Total energy calls: {energy.energy_call_count}")
