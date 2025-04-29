@@ -3,4 +3,3 @@ CUDA_VISIBLE_DEVICES=1 python src/eval.py \
   --project lj13 \
   --energy lj13 \
   --clipping \
-  --seed 0

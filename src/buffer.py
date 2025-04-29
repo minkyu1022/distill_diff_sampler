@@ -94,17 +94,11 @@ class ReplayBuffer():
         # self.sampled_rewards = []
 
     def load_data(self, data_dir, return_flow=False):
-        samples = []
-        rewards = []
-        for file in sorted(os.listdir(os.path.join(data_dir, 'positions')))[:1000]:
-            samples.append(np.load(os.path.join(data_dir, 'positions', file)))
-            rewards.append(np.load(os.path.join(data_dir, 'rewards', file)))
-        samples = np.concatenate(samples, axis=0).reshape(-1, self.data_ndim)
-        rewards = np.concatenate(rewards, axis=0)
+        samples = np.load(os.path.join(data_dir, 'positions.npy')).reshape(-1, self.data_ndim)
+        rewards = np.load(os.path.join(data_dir, 'rewards.npy'))
         samples = torch.tensor(samples)
         rewards = torch.tensor(rewards)
         self.add(samples, rewards)
-        print(len(samples))
         if return_flow:
             log_Z_est = torch.logsumexp(rewards, dim=0) - torch.log(torch.tensor(len(rewards)))
             return log_Z_est
@@ -120,8 +114,7 @@ class ReplayBuffer():
         # Keep the buffer size in check
         
         if self.reward_dataset.__len__() > self.buffer_size:
-  
-            
+        
             self.reward_dataset.deque(self.reward_dataset.__len__() - self.buffer_size)
             self.sample_dataset.deque(self.sample_dataset.__len__() - self.buffer_size)
             

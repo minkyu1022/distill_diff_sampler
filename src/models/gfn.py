@@ -85,6 +85,7 @@ class GFN(nn.Module):
                 mode="egnn_dynamics",
                 agg="sum",
             )
+            
         self.pb_scale_range = pb_scale_range
 
         if self.conditional_flow_model:
@@ -138,7 +139,6 @@ class GFN(nn.Module):
             mode="egnn_dynamics",
             agg="sum",
         )
-        self.flow_model = torch.nn.Parameter(torch.tensor(0.).to(self.device))
     def split_params(self, tensor, sigma):
         mean, logvar = gaussian_params(tensor)
         if not self.learned_variance:
@@ -151,7 +151,7 @@ class GFN(nn.Module):
         if self.langevin:
             with torch.enable_grad():
                 s.requires_grad_(True)
-                grad_log_r = torch.autograd.grad(log_r(s).sum(), s)[0].detach()
+                grad_log_r = torch.autograd.grad(log_r(s, True).sum(), s)[0].detach()
                 grad_log_r = torch.nan_to_num(grad_log_r)
                 if self.clipping:
                     grad_log_r = torch.clip(grad_log_r, -self.lgv_clip, self.lgv_clip)

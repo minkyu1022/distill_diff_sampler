@@ -5,7 +5,7 @@ do
   CUDA_VISIBLE_DEVICES=$i python src/train.py \
     --date $(date +%Y-%m-%d_%H:%M:%S) \
     --project aldp_lr \
-    --data_dir data/aldp/md_600_05 \
+    --data_dir data/aldp/md \
     --energy aldp \
     --both_ways \
     --clipping \

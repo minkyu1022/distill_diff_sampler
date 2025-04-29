@@ -1,0 +1,17 @@
+CUDA_VISIBLE_DEVICES=3 python src/train.py \
+  --method tb_expl_ls_lp \
+  --date $(date +%Y-%m-%d_%H:%M:%S) \
+  --project aldp \
+  --teacher mala \
+  --energy aldp \
+  --langevin \
+  --both_ways \
+  --local_search \
+  --max_iter_ls 200 \
+  --burn_in 100 \
+  --ld_schedule \
+  --exploratory \
+  --exploration_wd \
+  --exploration_factor 0.1 \
+  --batch_size 16 \
+  --clipping \

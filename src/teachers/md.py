@@ -1,6 +1,6 @@
 import torch
-import numpy as np
 from tqdm import trange
+
 from .base_set import BaseSet
 
 class MD(BaseSet):
@@ -10,8 +10,8 @@ class MD(BaseSet):
         self.device = args.device
         self.n_steps = args.n_steps
         self.timestep = args.timestep
+        self.rnd_weight = args.rnd_weight
         self.batch_size = args.teacher_batch_size
-        self.exploration_factor = args.exploration_factor
         
         kBT = 1.380649 * 6.02214076 * 1e-3 * args.temperature
         
@@ -41,6 +41,7 @@ class MD(BaseSet):
         rewards = torch.stack(rewards, dim=0)
         positions = positions.reshape(-1, self.energy.data_ndim)
         rewards = rewards.reshape(-1)
+        print(f"{positions.shape[0]} samples collected")
         return positions.detach(), rewards.detach()
 
     def step(self, position, velocity, force, expl_model=None):
@@ -54,8 +55,8 @@ class MD(BaseSet):
 
         position = position.requires_grad_(True)
         
-        energy = self.energy.non_reduced_energy(position.reshape(self.batch_size, -1))
+        energy = self.energy.non_reduced_energy(position.reshape(self.batch_size, -1), count=True)
         if expl_model is not None:
-            energy = energy - self.exploration_factor * expl_model.forward(position.reshape(self.batch_size, -1))
+            energy = energy - self.rnd_weight * expl_model.forward(position.reshape(self.batch_size, -1))
         force = -torch.autograd.grad(energy.sum(), position)[0]
         return position.detach(), velocity.detach(), force.detach()

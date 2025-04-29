@@ -148,7 +148,6 @@ if __name__ == '__main__':
                           rank_weight=args.rank_weight, prioritized=args.prioritized)
     
     buffer.load_data("data/md_600_05")
-    # buffer.load_data("data/md_600_rnd")
     
     gfn_model = GFN(energy.data_ndim, args.s_emb_dim, args.hidden_dim, args.harmonics_dim, args.t_emb_dim,
             trajectory_length=args.T, clipping=args.clipping, lgv_clip=args.lgv_clip, gfn_clip=args.gfn_clip,

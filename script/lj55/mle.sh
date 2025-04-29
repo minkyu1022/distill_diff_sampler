@@ -1,14 +1,12 @@
-CUDA_VISIBLE_DEVICES=5 python src/train.py \
+CUDA_VISIBLE_DEVICES=7 python src/train.py \
+  --method mle \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
   --project lj55 \
   --data_dir data/lj55/mala \
   --energy lj55 \
-  --teacher mala \
+  --method mle \
   --max_grad_norm 1.0 \
   --batch_size 4 \
-  --teacher_batch_size 300 \
-  --ld_schedule \
   --bwd \
   --mode_bwd mle \
   --clipping \
-  --seed 1

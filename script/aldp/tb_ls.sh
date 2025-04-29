@@ -1,0 +1,12 @@
+CUDA_VISIBLE_DEVICES=6 python src/train.py \
+  --method tb_ls \
+  --date $(date +%Y-%m-%d_%H:%M:%S) \
+  --project aldp \
+  --teacher mala \
+  --energy aldp \
+  --local_search \
+  --both_ways \
+  --max_iter_ls 200 \
+  --burn_in 100 \
+  --ld_schedule \
+  --clipping \

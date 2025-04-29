@@ -1,0 +1,14 @@
+CUDA_VISIBLE_DEVICES=0 python src/train.py \
+  --date $(date +%Y-%m-%d_%H:%M:%S) \
+  --project lj55 \
+  --data_dir data/lj55/mala \
+  --energy lj55 \
+  --teacher mala \
+  --rnd_weight 1000000 \
+  --max_grad_norm 1.0 \
+  --ld_schedule \
+  --teacher_batch_size 100 \
+  --batch_size 4 \
+  --epochs 10000 \
+  --both_ways \
+  --clipping \

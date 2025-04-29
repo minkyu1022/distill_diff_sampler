@@ -3,5 +3,3 @@ CUDA_VISIBLE_DEVICES=2 python src/eval.py \
   --project lj55 \
   --energy lj55 \
   --clipping \
-  --seed 0
-  

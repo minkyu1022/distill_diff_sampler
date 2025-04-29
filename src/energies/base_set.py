@@ -16,6 +16,7 @@ class BaseSet(abc.ABC, Dataset):
         self.data = None
         self.data_ndim = None
         self._gt_ksd = None
+        self.energy_call_count = None
 
     def gt_logz(self):
         raise NotImplementedError
@@ -52,8 +53,8 @@ class BaseSet(abc.ABC, Dataset):
                 lgv_data = copy_x.grad.data
             return lgv_data
 
-    def log_reward(self, x):
-        return -self.energy(x)
+    def log_reward(self, x, count=False):
+        return -self.energy(x, count=count)
 
     def hmt_score(self, x):
         with torch.no_grad():

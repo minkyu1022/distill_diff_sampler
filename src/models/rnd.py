@@ -53,21 +53,9 @@ class RNDModel(nn.Module):
             mode="egnn_dynamics",
             agg="sum",
         )
-        # self.target = nn.Sequential(
-        #     nn.Linear(input_dim, 256),
-        #     nn.ReLU(),
-        #     nn.Linear(256, feature_dim)
-        # )
-        # Freeze target network parameters.
+
         for param in self.target.parameters():
             param.requires_grad = False
-
-        # Predictor network: will be trained to mimic the target.
-        # self.predictor = nn.Sequential(
-        #     nn.Linear(input_dim, 256),
-        #     nn.ReLU(),
-        #     nn.Linear(256, feature_dim)
-        # )
 
     def forward(self, x):        
         with torch.no_grad():

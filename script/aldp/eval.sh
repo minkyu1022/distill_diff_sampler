@@ -3,5 +3,4 @@ CUDA_VISIBLE_DEVICES=0 python src/eval.py \
   --project aldp_300K_eval \
   --energy aldp \
   --clipping \
-  --seed 0
   

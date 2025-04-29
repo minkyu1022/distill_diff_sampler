@@ -3,4 +3,4 @@ CUDA_VISIBLE_DEVICES=2 python src/collect.py \
   --energy lj55 \
   --teacher mala \
   --ld_schedule \
-  --seed 0
+  --teacher_batch_size 200 \

@@ -13,7 +13,6 @@ import networkx.algorithms.isomorphism as iso
 from metrics.gflownet_losses import *
 from tbg.tbg.utils import create_adjacency_list, find_chirality_centers, compute_chirality_sign, check_symmetry_change
 
-
 def set_seed(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
@@ -64,13 +63,7 @@ def fig_to_image(fig):
 
 
 def get_gfn_optimizer(architecture, gfn_model, lr_policy, lr_flow, lr_back, back_model=False, conditional_flow_model=False, use_weight_decay=False, weight_decay=1e-7):
-    if architecture == 'pis':
-        param_groups = [ {'params': gfn_model.t_model.parameters()},
-                        {'params': gfn_model.s_model.parameters()},
-                        {'params': gfn_model.joint_model.parameters()},
-                        {'params': gfn_model.langevin_scaling_model.parameters()} ]
-    elif architecture == 'egnn':
-        param_groups = [{'params': gfn_model.joint_model.parameters()}]
+    param_groups = [{'params': gfn_model.joint_model.parameters()}]
 
     if conditional_flow_model:
         param_groups += [ {'params': gfn_model.flow_model.parameters(), 'lr': lr_flow} ]

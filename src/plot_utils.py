@@ -5,8 +5,18 @@ from matplotlib.colors import LogNorm
 
 from utils import compute_dihedral
 
-def plot_phi_psi(xs):
-    fig = plt.figure(figsize=(6, 6))
+def plot_phi_psi(xs, dpi=300):
+    """
+    Plots a 2D histogram of phi and psi angles.
+
+    Args:
+        xs (numpy.ndarray): Input data for dihedral angle computation.
+        dpi (int): Dots per inch for the figure.
+
+    Returns:
+        matplotlib.figure.Figure: The generated figure.
+    """
+    fig = plt.figure(figsize=(6, 6), dpi=dpi)
     
     angle_1 = [6, 8, 14, 16]
     angle_2 = [1, 6, 8, 14] 
@@ -18,28 +28,42 @@ def plot_phi_psi(xs):
 
     xedges = np.linspace(-np.pi, np.pi, 51)
     yedges = np.linspace(-np.pi, np.pi, 51)
-    plt.hist2d(phi, psi, bins=[xedges, yedges], norm=LogNorm())
+    plt.hist2d(phi, psi, bins=[xedges, yedges], norm=LogNorm(), cmap="viridis")
     plt.xlim(-np.pi, np.pi)
     plt.ylim(-np.pi, np.pi)
-    plt.xlabel("$\phi$")
-    plt.ylabel("$\psi$")
+    plt.xlabel("$\phi$", fontsize=14)
+    plt.ylabel("$\psi$", fontsize=14)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.colorbar(label="Density")
     plt.tight_layout()
     return fig
 
-def plot_energy_hist(energy_dict):    
-    fig = plt.figure(figsize=(6, 6))
-    plt.xlabel("Energy   [$k_B T$]")
+def plot_energy_hist(energy_dict, dpi=300):
+    """
+    Plots a histogram of energy values.
+
+    Args:
+        energy_dict (dict): Dictionary containing energy values for different categories.
+        dpi (int): Dots per inch for the figure.
+
+    Returns:
+        matplotlib.figure.Figure: The generated figure.
+    """
+    fig = plt.figure(figsize=(6, 6), dpi=dpi)
+    plt.xlabel("Energy [$k_B T$]", fontsize=14)
     
-    upper = np.percentile(energy_dict['Student'], 80)
-    # teacher_upper = max(np.percentile(energy_dict['Teacher'], 80), 20)
-    
+    upper = max(np.percentile(energy_dict['Student'], 90), 
+                np.percentile(energy_dict['GT'], 90))
     lower = min(energy_dict['GT'].min(), energy_dict['Student'].min())
     
     for name, energy in energy_dict.items():
         plt.hist(energy, range=(lower, upper), bins=40, density=False, label=name, alpha=0.5)
 
-    plt.ylabel(f"Count")
-    plt.legend()
+    plt.ylabel("Count", fontsize=14)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.legend(fontsize=12)
     plt.tight_layout()
     return fig
 
@@ -179,9 +203,9 @@ def draw_aldp(ax, coordinate):
 
 
 def draw_interatomic_dist_histogram(ax, interatomic_dist, name=None, bins=100):
-    ax.set_xlabel("Interatomic distances")
-    ax.set_ylabel("density")
-    ax.grid(True)
+    ax.set_xlabel("Interatomic distances", fontsize=14)
+    ax.set_ylabel("Density", fontsize=14)
+    ax.grid(True, linestyle="--", alpha=0.7)
 
     return ax.hist(
         interatomic_dist,
@@ -200,5 +224,6 @@ def make_interatomic_dist_fig(dist_dict):
     for name, interatomic_dist in dist_dict.items():
         draw_interatomic_dist_histogram(ax, interatomic_dist, name)
 
-    ax.legend()
+    ax.legend(fontsize=12)
+    plt.tight_layout()
     return fig

@@ -1,0 +1,12 @@
+CUDA_VISIBLE_DEVICES=2 python src/train.py \
+  --method subtb_lp \
+  --date $(date +%Y-%m-%d_%H:%M:%S) \
+  --project lj55 \
+  --energy lj55 \
+  --mode_fwd subtb \
+  --langevin \
+  --partial_energy \
+  --conditional_flow_model \
+  --batch_size 2 \
+  --max_grad_norm 1.0 \
+  --clipping \

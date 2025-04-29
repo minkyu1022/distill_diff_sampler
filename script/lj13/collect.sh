@@ -1,9 +1,8 @@
-CUDA_VISIBLE_DEVICES=1 python src/collect.py \
+CUDA_VISIBLE_DEVICES=0 python src/collect.py \
   --project lj13_mala \
   --energy lj13 \
   --teacher mala \
-  --max_iter_ls 20000 \
-  --burn_in 15000 \
+  --burn_in 4000 \
+  --max_iter_ls 6000 \
+  --teacher_batch_size 500 \
   --ld_schedule \
-  --ld_step 0.00001 \
-  --seed 0

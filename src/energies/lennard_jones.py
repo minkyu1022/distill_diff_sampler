@@ -39,8 +39,11 @@ class LennardJonesEnergy(BaseSet):
         self.energy_factor = energy_factor
         self.mass = torch.ones((self.n_particles, self.spatial_dim), device=device).unsqueeze(0)
 
-    def energy(self, x: torch.Tensor):
+    def energy(self, x, count=False):
         assert x.shape[-1] == self.ndim
+
+        if count:
+            self.energy_call_count += x.shape[0]
 
         # dists is a tensor of shape [..., n_particles * (n_particles - 1) // 2]
         dists = interatomic_distance(x, self.n_particles, self.spatial_dim)
@@ -86,6 +89,11 @@ class LJ13(LennardJonesEnergy):
             device=args.device,
         )
         self.initial_position = self.approx_sample[0]
+
+        if args.method in ['ours', 'mle']:
+            self.energy_call_count = 3000000 # 6000 max_iter_ls * 500 batch_size for 1 round teacher
+        else:
+            self.energy_call_count = 0
         
     def gt_logz(self):
         raise NotImplementedError
@@ -108,6 +116,11 @@ class LJ55(LennardJonesEnergy):
             device=args.device,
         )
         self.initial_position = self.approx_sample[0]
+
+        if args.method in ['ours', 'mle']:
+            self.energy_call_count = 4000000 # 20000 max_iter_ls * 200 batch_size for 1 round teacher
+        else:
+            self.energy_call_count = 0
         
     def gt_logz(self):
         raise NotImplementedError

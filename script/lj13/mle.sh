@@ -1,11 +1,11 @@
-CUDA_VISIBLE_DEVICES=6 python src/train.py \
+CUDA_VISIBLE_DEVICES=7 python src/train.py \
+  --method mle \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
-  --project lj13 \
+  --project final_lj13 \
   --data_dir data/lj13/mala \
   --energy lj13 \
   --bwd \
   --mode_bwd mle \
   --max_grad_norm 1.0 \
-  --teacher_batch_size 300 \
   --clipping \
-  --seed 1
+  --epochs 10000 \

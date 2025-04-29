@@ -1,7 +1,7 @@
-CUDA_VISIBLE_DEVICES=7 python src/train.py \
-  --method tb \
+CUDA_VISIBLE_DEVICES=0 python src/train.py \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
   --project aldp \
+  --data_dir data/aldp/md \
   --energy aldp \
-  --batch_size 16 \
+  --both_ways \
   --clipping \

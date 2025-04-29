@@ -1,9 +1,9 @@
-CUDA_VISIBLE_DEVICES=2 python src/train.py \
+CUDA_VISIBLE_DEVICES=7 python src/train.py \
+  --method mle \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
   --project aldp \
-  --data_dir data/aldp/md_600_05 \
+  --data_dir data/aldp/md \
   --energy aldp \
   --bwd \
   --mode_bwd mle \
   --clipping \
-  --seed 1

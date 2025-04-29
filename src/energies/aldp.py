@@ -80,28 +80,37 @@ class ALDP(BaseSet):
         self.initial_position = torch.tensor(initial_position, device=self.device)
         
         self.samples = self.load_data()
+        
+        if args.method in ['ours', 'mle']:
+            self.energy_call_count = 60000000 # 200000 max_iter_ls * 300 batch_size for 1 round teacher
+        else:
+            self.energy_call_count = 0
 
     def load_data(self):
         samples = []
-        for file in sorted(os.listdir(os.path.join('data/aldp/md_300_05', 'positions')))[-1000:]:
-            samples.append(np.load(os.path.join('data/aldp/md_300_05', 'positions', file)))
+        for file in sorted(os.listdir(os.path.join('data/aldp/gt', 'positions')))[-1000:]:
+            samples.append(np.load(os.path.join('data/aldp/gt', 'positions', file)))
         samples = np.concatenate(samples, axis=0).reshape(-1, self.data_ndim)
         samples = torch.tensor(samples)
         return samples
 
-    def energy(self, x):
+    def energy(self, x, count=False):
         x = x.reshape(-1, self.data_ndim//3, 3)
         species = self.species.repeat(x.shape[0], 1)
         energies_h = self.model((species, 10*x)).energies
         energies_kJmol = hartree2kjoulemol(energies_h)
         energies = energies_kJmol * self.beta
+        if count:
+            self.energy_call_count += x.shape[0]
         return energies
     
-    def non_reduced_energy(self, x):
+    def non_reduced_energy(self, x, count=False):
         x = x.reshape(-1, self.data_ndim//3, 3)
         species = self.species.repeat(x.shape[0], 1)
         energies_h = self.model((species, 10*x)).energies
         energies_kJmol = hartree2kjoulemol(energies_h)
+        if count:
+            self.energy_call_count += x.shape[0]
         return energies_kJmol
 
     def sample(self, batch_size):

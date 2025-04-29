@@ -9,10 +9,10 @@ class MALA(BaseSet):
         self.device = args.device
         self.burn_in = args.burn_in
         self.ld_step = args.ld_step
+        self.rnd_weight = args.rnd_weight
         self.max_iter_ls = args.max_iter_ls
         self.ld_schedule = args.ld_schedule
         self.batch_size = args.teacher_batch_size
-        self.exploration_factor = args.exploration_factor
         self.target_acceptance_rate = args.target_acceptance_rate
 
     def adjust_ld_step(self, ld_step, acceptance_rate, adjustment_factor=0.01):
@@ -33,9 +33,9 @@ class MALA(BaseSet):
         for i in trange(self.max_iter_ls):
             x = x.requires_grad_(True)
             
-            log_r = self.energy.log_reward(x)
+            log_r = self.energy.log_reward(x, count=True)
             if expl_model is not None:
-                log_r = log_r + self.exploration_factor * expl_model(x)
+                log_r = log_r + self.rnd_weight * expl_model(x)
             r_grad_original = torch.autograd.grad(log_r.sum(), x)[0]
             if self.ld_schedule:
                 ld_step = self.ld_step if i == 0 else self.adjust_ld_step(ld_step, acceptance_rate)
@@ -45,11 +45,10 @@ class MALA(BaseSet):
             new_x = x + ld_step * r_grad_original.detach() + np.sqrt(2 * ld_step) * torch.randn_like(x, device=self.device)
             log_r_new = self.energy.log_reward(new_x)
             if expl_model is not None:
-                log_r_new = log_r_new + self.exploration_factor * expl_model(new_x)
+                log_r_new = log_r_new + self.rnd_weight * expl_model(new_x)
             r_grad_new = torch.autograd.grad(log_r_new.sum(), new_x)[0]
 
             with torch.no_grad():
-            
                 log_q_fwd = -(torch.norm(new_x - x - ld_step * r_grad_original, p=2, dim=1) ** 2) / (4 * ld_step)
                 log_q_bck = -(torch.norm(x - new_x - ld_step * r_grad_new, p=2, dim=1) ** 2) / (4 * ld_step)
 
@@ -75,6 +74,5 @@ class MALA(BaseSet):
 
         sample = torch.cat(accepted_samples, dim=0)
         log_r = self.energy.log_reward(sample)
-        np.save(f'data/lj13/mala/positions/0.npy', sample.detach().cpu().numpy())
-        np.save(f'data/lj13/mala/rewards/0.npy', log_r.detach().cpu().numpy())
+        print(f"{sample.shape[0]} samples accepted")
         return sample, log_r
