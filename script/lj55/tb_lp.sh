@@ -1,9 +1,0 @@
-CUDA_VISIBLE_DEVICES=5 python src/train.py \
-  --method tb_lp \
-  --date $(date +%Y-%m-%d_%H:%M:%S) \
-  --project lj55 \
-  --energy lj55 \
-  --max_grad_norm 1.0 \
-  --langevin \
-  --batch_size 2 \
-  --clipping \

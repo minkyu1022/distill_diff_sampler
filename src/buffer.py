@@ -93,15 +93,14 @@ class ReplayBuffer():
         self.rank_weight = rank_weight
         # self.sampled_rewards = []
 
-    def load_data(self, data_dir, return_flow=False):
+    def load_data(self, data_dir):
         samples = np.load(os.path.join(data_dir, 'positions.npy')).reshape(-1, self.data_ndim)
         rewards = np.load(os.path.join(data_dir, 'rewards.npy'))
         samples = torch.tensor(samples)
         rewards = torch.tensor(rewards)
         self.add(samples, rewards)
-        if return_flow:
-            log_Z_est = torch.logsumexp(rewards, dim=0) - torch.log(torch.tensor(len(rewards)))
-            return log_Z_est
+        log_Z_est = torch.logsumexp(rewards, dim=0) - torch.log(torch.tensor(len(rewards)))
+        return log_Z_est
     
     def add(self, samples, log_r):
         if self.reward_dataset is None:

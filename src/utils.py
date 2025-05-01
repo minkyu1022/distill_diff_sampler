@@ -6,6 +6,7 @@ import numpy as np
 import mdtraj as md
 import networkx as nx
 from tqdm import tqdm
+from models import GFN, RNDModel
 from networkx import isomorphism
 from bgflow.utils import as_numpy
 import networkx.algorithms.isomorphism as iso
@@ -47,11 +48,6 @@ def logmeanexp(x, dim=0):
 
 def dcp(tensor):
     return tensor.detach().cpu()
-
-
-def gaussian_params(tensor):
-    mean, logvar = torch.chunk(tensor, 2, dim=-1)
-    return mean, logvar
 
 
 def fig_to_image(fig):
@@ -104,6 +100,24 @@ def get_gfn_backward_loss(mode, samples, gfn_model, log_reward, exploration_std=
     elif mode == 'mle':
         loss = bwd_mle(samples, gfn_model, log_reward, exploration_std)
     return loss
+
+
+def init_model(args, energy):
+    gfn_model = GFN(energy.data_ndim, args.s_emb_dim, args.hidden_dim, args.harmonics_dim, args.t_emb_dim,
+            trajectory_length=args.T, clipping=args.clipping, lgv_clip=args.lgv_clip, gfn_clip=args.gfn_clip,
+            langevin=args.langevin, learned_variance=args.learned_variance,
+            partial_energy=args.partial_energy, log_var_range=args.log_var_range,
+            pb_scale_range=args.pb_scale_range,
+            t_scale=args.t_scale, langevin_scaling_per_dimension=args.langevin_scaling_per_dimension,
+            conditional_flow_model=args.conditional_flow_model, learn_pb=args.learn_pb,
+            architecture=args.architecture, lgv_layers=args.lgv_layers,
+            joint_layers=args.joint_layers, zero_init=args.zero_init, device=args.device, 
+            scheduler=args.scheduler, sigma_max=args.sigma_max, sigma_min=args.sigma_min, energy=args.energy).to(args.device)
+    rnd_model = RNDModel(args, energy.data_ndim).to(args.device)
+    gfn_optimizer = get_gfn_optimizer(args.architecture, gfn_model, args.lr_policy, args.lr_flow, args.lr_back, args.learn_pb,
+                                      args.conditional_flow_model, args.use_weight_decay, args.weight_decay)
+    rnd_optimizer = torch.optim.Adam(rnd_model.predictor.parameters(), lr=args.lr_rnd)
+    return gfn_model, rnd_model, gfn_optimizer, rnd_optimizer
     
 
 def get_exploration_std(iter, exploratory, exploration_factor=0.1, exploration_wd=False):

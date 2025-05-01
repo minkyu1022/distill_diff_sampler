@@ -1,13 +1,14 @@
 import os
-import yaml
 import wandb
 import torch
 import argparse
 
+from tqdm import trange
+
 from buffer import ReplayBuffer
+from models import GFN, RNDModel
 
 from utils import *
-from logger import *
 from teachers import *
 from energies import *
 from plot_utils import *
@@ -55,7 +56,7 @@ parser.add_argument('--predictor_layers', type=int, default=3)
 
 # Training config
 parser.add_argument('--round', type=int, default=1)
-# parser.add_argument('--epochs', type=int, default=20000)
+parser.add_argument('--epochs', type=int, default=20000)
 parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--lr_rnd', type=float, default=1e-3)
 parser.add_argument('--lr_flow', type=float, default=1e-3)
@@ -63,7 +64,6 @@ parser.add_argument('--lr_back', type=float, default=5e-4)
 parser.add_argument('--lr_policy', type=float, default=5e-4)
 parser.add_argument('--max_grad_norm', type=float, default=-1)
 parser.add_argument('--weight_decay', type=float, default=1e-7)
-parser.add_argument('--epochs', type=int, nargs='+', default=[20000])
 parser.add_argument('--use_weight_decay', action='store_true', default=False)
 
 ## GFN
@@ -112,8 +112,7 @@ parser.add_argument('--prioritized', type=str, default="rank", choices=('none', 
 parser.add_argument('--sampling', type=str, default="buffer", choices=('sleep_phase', 'energy', 'buffer'))
 
 # Logging config
-parser.add_argument('--checkpoint', type=str, default="")
-parser.add_argument('--eval_size', type=int, default=10000)
+parser.add_argument('--eval_size', type=int, default=2000)
 
 args = parser.parse_args()
 
@@ -147,24 +146,21 @@ def eval(name, energy, buffer, gfn_model, final=False):
     eval_dir = 'final_eval' if final else 'eval'
     metrics = dict()
     
-    with torch.no_grad():
-        init_states = torch.zeros(args.eval_size, energy.data_ndim).to(args.device)
-        gt_samples = energy.sample(args.eval_size).to(args.device)
-        samples, metrics[f'{eval_dir}/log_Z_IS'], metrics[f'{eval_dir}/ELBO'], metrics[f'{eval_dir}/log_Z_learned'] = log_partition_function(init_states, gfn_model, energy.log_reward)
-        metrics[f'{eval_dir}/mean_log_likelihood'] = torch.tensor(0.0, device=args.device) if args.mode_fwd == 'pis' else mean_log_likelihood(gt_samples[:200], gfn_model, energy.log_reward)
-        metrics[f'{eval_dir}/EUBO'] = EUBO(gt_samples, gfn_model, energy.log_reward)
+    init_states = torch.zeros(args.eval_size, energy.data_ndim).to(args.device)
+    gt_samples = energy.sample(args.eval_size).to(args.device)
     
-        metrics.update(get_sample_metrics(samples, gt_samples, final))
+    samples, metrics[f'{eval_dir}/log_Z_IS'], metrics[f'{eval_dir}/ELBO'], metrics[f'{eval_dir}/log_Z_learned'] = log_partition_function(init_states, gfn_model, energy.log_reward)
+
+    metrics[f'{eval_dir}/mean_log_likelihood'] = torch.tensor(0.0, device=args.device) if args.mode_fwd == 'pis' else mean_log_likelihood(gt_samples, gfn_model, energy.log_reward)
+    metrics[f'{eval_dir}/EUBO'] = EUBO(gt_samples, gfn_model, energy.log_reward)
+    
+    metrics.update(get_sample_metrics(samples, gt_samples, final))
 
     energies = energy.energy(samples).detach().cpu().numpy()
     gt_energies = energy.energy(gt_samples).detach().cpu().numpy()
     interatomic_distances = energy.interatomic_distance(samples).reshape(-1).detach().cpu().numpy()
     gt_interatomic_distances = energy.interatomic_distance(gt_samples).reshape(-1).detach().cpu().numpy()
     
-    sample_dict = {
-        'Student': samples,
-        'GT': gt_samples,
-    }
     energy_dict = {
         'Student': energies,
         'GT': gt_energies,
@@ -178,9 +174,6 @@ def eval(name, energy, buffer, gfn_model, final=False):
         teacher_samples = buffer.sample_pos(args.eval_size).to(args.device)
         teacher_energies = energy.energy(teacher_samples).detach().cpu().numpy()
         teacher_interatomic_distances = energy.interatomic_distance(teacher_samples).reshape(-1).detach().cpu().numpy()
-        sample_dict.update({
-            'Teacher': teacher_samples
-        })
         energy_dict.update({
             'Teacher': teacher_energies
         })
@@ -190,14 +183,28 @@ def eval(name, energy, buffer, gfn_model, final=False):
 
     energy_hist_fig = plot_energy_hist(energy_dict)
     dist_fig = make_interatomic_dist_fig(dist_dict)
-    metrics["visualization/energy_hist"] = wandb.Image(energy_hist_fig)
-    metrics["visualization/dist"] = wandb.Image(dist_fig)
+    metrics["visualization/energy_hist"] = wandb.Image(fig_to_image(energy_hist_fig))
+    metrics["visualization/dist"] = wandb.Image(fig_to_image(dist_fig))
     
     if args.energy == 'aldp':
         aldp_fig = draw_aldps(samples[:3])    
-        metrics["visualization/aldp"] = wandb.Image(aldp_fig)
+        metrics["visualization/aldp"] = wandb.Image(fig_to_image(aldp_fig))
         
-    eval_save(name, sample_dict, energy_dict, dist_dict)
+    if not torch.isnan(samples).any() and not torch.isinf(samples).any():
+        np.save(f'{name}/samples.npy', samples.cpu().numpy())
+        np.save(f'{name}/gt_samples.npy', gt_samples.cpu().numpy())
+        if args.method in ['ours', 'mle']:
+            np.save(f'{name}/teacher_samples.npy', teacher_samples.cpu().numpy())
+    if not np.isnan(energies).any() and not np.isinf(energies).any():
+        np.save(f'{name}/energies.npy', energies)
+        np.save(f'{name}/gt_energies.npy', gt_energies)
+        if args.method in ['ours', 'mle']:
+            np.save(f'{name}/teacher_energies.npy', teacher_energies)
+        if args.energy in ['lj13', 'lj55']:
+            np.save(f'{name}/distances.npy', interatomic_distances)
+            np.save(f'{name}/gt_distances.npy', gt_interatomic_distances)
+            if args.method in ['ours', 'mle']:
+                np.save(f'{name}/teacher_distances.npy', teacher_interatomic_distances)
     return metrics
 
 def train_step(energy, gfn_model, gfn_optimizer, rnd_model, rnd_optimizer, it, exploratory, buffer, buffer_ls, exploration_factor, exploration_wd):
@@ -271,87 +278,137 @@ def bwd_train_step(energy, gfn_model, rnd_model, buffer, buffer_ls, exploration_
     
     return loss, rnd_loss
 
-def train(name, energy, buffer, buffer_ls, logging_dict):
+def train(name, energy, buffer, buffer_ls, epoch_offset, log_Z_est=None):
+    gfn_losses = []
+    rnd_losses = []
+    mlls = []
+    elbos = []
+    eubos = []
+    log_Z_learned = []
+    log_Z_IS = []
+    energy_call_counts = []
+    
+    gfn_model = GFN(energy.data_ndim, args.s_emb_dim, args.hidden_dim, args.harmonics_dim, args.t_emb_dim,
+            trajectory_length=args.T, clipping=args.clipping, lgv_clip=args.lgv_clip, gfn_clip=args.gfn_clip,
+            langevin=args.langevin, learned_variance=args.learned_variance,
+            partial_energy=args.partial_energy, log_var_range=args.log_var_range,
+            pb_scale_range=args.pb_scale_range,
+            t_scale=args.t_scale, langevin_scaling_per_dimension=args.langevin_scaling_per_dimension,
+            conditional_flow_model=args.conditional_flow_model, learn_pb=args.learn_pb,
+            architecture=args.architecture, lgv_layers=args.lgv_layers,
+            joint_layers=args.joint_layers, zero_init=args.zero_init, device=args.device, 
+            scheduler=args.scheduler, sigma_max=args.sigma_max, sigma_min=args.sigma_min, energy=args.energy).to(args.device)
+    
+    rnd_model = RNDModel(args, energy.data_ndim, args.energy).to(args.device)
+    
+    if log_Z_est is not None:
+        # Load the learned log_Z
+        flow_data = log_Z_est
+        # print("Loaded log_Z:", flow_data)
+        
+        if not isinstance(flow_data, torch.nn.Parameter):
+            flow_data = torch.nn.Parameter(flow_data)
+        
+        gfn_model.flow_model = flow_data
+
+    gfn_optimizer = get_gfn_optimizer(args.architecture, gfn_model, args.lr_policy, args.lr_flow, args.lr_back, args.learn_pb,
+                                      args.conditional_flow_model, args.use_weight_decay, args.weight_decay)
+    
+    rnd_optimizer = torch.optim.Adam(rnd_model.predictor.parameters(), lr=args.lr_rnd)
+
     metrics = dict()
     
-    total_epochs = sum(args.epochs)
-    while logging_dict['epoch'] < total_epochs:
-        if logging_dict['epoch'] in args.epochs:
-            rnd_model.eval()
-            if args.energy == 'aldp':
-                initial_positions = buffer.sample_pos(args.teacher_batch_size).to(args.device)
-            if args.energy in ['lj13', 'lj55']:
-                prior = Gaussian(args.device, energy.data_ndim, std=args.prior_std)
-                initial_positions = prior.sample(args.teacher_batch_size).to(args.device)
-            samples, rewards = teacher.sample(initial_positions, expl_model=rnd_model)
-            buffer.add(samples.detach().cpu(), rewards.detach().cpu())
-            
+    for i in trange(args.epochs + 1):
         gfn_model.train()
         rnd_model.train()
 
-        metrics['train/gfn_loss'], metrics['train/rnd_loss'] = train_step(energy, gfn_model, gfn_optimizer, rnd_model, rnd_optimizer, logging_dict['epoch'], args.exploratory,
+        metrics['train/loss'], metrics['train/rnd_loss'] = train_step(energy, gfn_model, gfn_optimizer, rnd_model, rnd_optimizer, i, args.exploratory,
                                            buffer, buffer_ls, args.exploration_factor, args.exploration_wd)
     
         metrics['train/energy_call_count'] = energy.energy_call_count
-        logging_dict['epoch'] = logging_dict['epoch'] + 1
         
-        if logging_dict['epoch'] % 100 == 0:
+        if i % 100 == 0:
             gfn_model.eval()
             with torch.no_grad():
                 metrics.update(eval(name, energy, buffer, gfn_model))
-            wandb.log(metrics, step=logging_dict['epoch'])
-            save_checkpoint(name, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer, metrics, logging_dict)
+            if 'tb-avg' in args.mode_fwd or 'tb-avg' in args.mode_bwd:
+                del metrics['eval/log_Z_learned']
+            wandb.log(metrics, step=epoch_offset+i)
+            
+            torch.save(gfn_model.state_dict(), f'{name}/policy.pt')
+
+            gfn_losses.append(metrics['train/loss'])
+            rnd_losses.append(metrics['train/rnd_loss'])
+            energy_call_counts.append(metrics['train/energy_call_count'])
+            
+            elbos.append(metrics['eval/ELBO'].item())
+            eubos.append(metrics['eval/EUBO'].item())
+            log_Z_IS.append(metrics['eval/log_Z_IS'].item())
+            mlls.append(metrics['eval/mean_log_likelihood'].item())
+            log_Z_learned.append(metrics['eval/log_Z_learned'].item())
+            
+            if i % 10000 == 0:
+                torch.save(gfn_model.state_dict(), f'{name}/policy_{i}.pt')
+                torch.save(rnd_model.state_dict(), f'{name}/rnd_{i}.pt')
+           
 
     gfn_model.eval()
     with torch.no_grad():
         metrics.update(eval(name, energy, buffer, gfn_model, True))
+    if 'tb-avg' in args.mode_fwd or 'tb-avg' in args.mode_bwd:
+        del metrics['final_eval/log_Z_learned']
     wandb.log(metrics)
-    save_checkpoint(name, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer, metrics, logging_dict)
+    
+    torch.save(gfn_model.state_dict(), f'{name}/policy_final.pt')
+    torch.save(rnd_model.state_dict(), f'{name}/rnd_final.pt')
+    np.save(f'{name}/gfn_losses.npy', np.array(gfn_losses))
+    np.save(f'{name}/rnd_losses.npy', np.array(rnd_losses))
+    np.save(f'{name}/energy_call_counts.npy', energy_call_counts)
+    np.save(f'{name}/log_Z_learned.npy', log_Z_learned)
+    np.save(f'{name}/log_Z_IS.npy', log_Z_IS)
+    np.save(f'{name}/elbos.npy', elbos)
+    np.save(f'{name}/eubos.npy', eubos)
+    np.save(f'{name}/mlls.npy', mlls)
+    
+    return gfn_model, rnd_model, epoch_offset+args.epochs
 
-if __name__ == '__main__':
-    # load energy, teacher, and model    
+if __name__ == '__main__':    
+    name = f'result/{args.date}'
+    if not os.path.exists(name):
+        os.makedirs(name)
+
+    wandb.init(project=args.project, config=args.__dict__)
+    wandb.run.log_code(".")
+
     energy = get_energy()
     teacher = get_teacher()
+    
     buffer = ReplayBuffer(args.buffer_size, 'cpu', energy.log_reward, args.batch_size, data_ndim=energy.data_ndim, beta=args.beta,
                           rank_weight=args.rank_weight, prioritized=args.prioritized)
     buffer_ls = ReplayBuffer(args.buffer_size, 'cpu', energy.log_reward, args.batch_size, data_ndim=energy.data_ndim, beta=args.beta,
                           rank_weight=args.rank_weight, prioritized=args.prioritized)
-    gfn_model, rnd_model, gfn_optimizer, rnd_optimizer = init_model(args, energy)
     
-    # load checkpoint
-    name = f'result/{args.date}'
-    if not os.path.exists(name):
-        os.makedirs(name)
+    global_epochs = 0
     
-    if not args.checkpoint:
-        logging_dict = {
-            'epoch': 0,
-            'log_Z_est': None,
-            'mlls': [],
-            'elbos': [],
-            'eubos': [],
-            'log_Z_IS': [],
-            'gfn_losses': [],
-            'rnd_losses': [],
-            'log_Z_learned': [],
-            'energy_call_counts': []
-        }
-        config = vars(args)
-        with open(f'{name}/config.yml', 'w') as f:
-            yaml.dump(config, f, default_flow_style=False)
-
-        if args.method == 'ours' and args.data_dir:
-            gfn_model.flow_model = buffer.load_data(args.data_dir)
+    if args.method in ['mle', 'ours'] and args.data_dir:
+        log_Z_est = buffer.load_data(args.data_dir, return_flow=True)
     else:
-        path = f'result/{args.checkpoint}/ckpt.pth'
-        logging_dict = load_checkpoint(path, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer)
-        with open(f'result/{args.checkpoint}/config.yml', 'r') as f:
-            config = yaml.safe_load(f)
-        if args.method == 'ours' and args.data_dir:
-            buffer.load_data(args.data_dir)
+        log_Z_est = None
         
-
-    wandb.init(project=args.project, config=config)
-    wandb.run.log_code(".")
-    
-    train(name, energy, buffer, buffer_ls, logging_dict)
+    rnd_model = RNDModel(args, energy.data_ndim, args.energy).to(args.device)
+    rnd_model.load_state_dict(torch.load(f'result/2025-04-29_16:24:10/rnd_final.pt'))
+        
+    if args.method=='ours':
+        if args.energy == 'aldp':
+            initial_positions = buffer.sample_pos(args.teacher_batch_size).to(args.device)
+        if args.energy in ['lj13', 'lj55']:
+            prior = Gaussian(args.device, energy.data_ndim, std=args.prior_std)
+            initial_positions = prior.sample(args.teacher_batch_size).to(args.device)
+        samples, rewards = teacher.sample(initial_positions, expl_model=rnd_model)
+        
+        buffer.add(samples.detach().cpu(), rewards.detach().cpu())
+        np.save(f'{name}/rnd_positions.npy', samples.cpu().numpy())
+        
+        gfn_model, rnd_model, global_epochs = train(name, energy, buffer, buffer_ls, epoch_offset=global_epochs, log_Z_est=log_Z_est)
+        
+    print(f"Total energy calls: {energy.energy_call_count}")

@@ -7,22 +7,21 @@ from tbg.tbg.models2 import EGNN_dynamics_AD2_cat
 
 
 class RNDModel(nn.Module):
-    def __init__(self, args, dim, energy):
+    def __init__(self, args, dim):
         super(RNDModel, self).__init__()
 
         n_particles = dim // 3
-        if energy == 'aldp':
+        if args.energy == 'aldp':
             atom_types = np.arange(n_particles)
 
             atom_types[[0, 2, 3]] = 2
             atom_types[[19, 20, 21]] = 20
             atom_types[[11, 12, 13]] = 12
-        elif energy == 'lj13' or energy == 'lj55':
+        elif args.energy == 'lj13' or args.energy == 'lj55':
             atom_types = np.zeros(n_particles, dtype=np.int64)
             
         h_initial = torch.nn.functional.one_hot(torch.tensor(atom_types))
         
-        # Fixed target network: random weights, not updated during training.
         self.target = EGNN_dynamics_AD2_cat(
             n_particles=n_particles,
             device=args.device,
@@ -34,7 +33,6 @@ class RNDModel(nn.Module):
             recurrent=True,
             tanh=True,
             attention=True,
-            condition_time=True,
             mode="egnn_dynamics",
             agg="sum",
         )
@@ -49,7 +47,6 @@ class RNDModel(nn.Module):
             recurrent=True,
             tanh=True,
             attention=True,
-            condition_time=True,
             mode="egnn_dynamics",
             agg="sum",
         )

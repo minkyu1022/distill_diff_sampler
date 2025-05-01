@@ -8,6 +8,7 @@ from ase.data import chemical_symbols
 from torchani.units import hartree2kjoulemol
 
 from .base_set import BaseSet
+from .particle_system import interatomic_distance
 
 initial_position = [
     [ 0.4795,  0.2779,  0.2894],
@@ -118,3 +119,6 @@ class ALDP(BaseSet):
         perm = torch.randperm(num_samples)
         indices = perm[:batch_size]
         return self.samples[indices]
+
+    def interatomic_distance(self, x):
+        return interatomic_distance(x, self.data_ndim//3, 3, remove_duplicates=True)

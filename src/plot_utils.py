@@ -52,10 +52,15 @@ def plot_energy_hist(energy_dict, dpi=300):
     """
     fig = plt.figure(figsize=(6, 6), dpi=dpi)
     plt.xlabel("Energy [$k_B T$]", fontsize=14)
+
+    energy_dict['Student'] = energy_dict['Student'][~np.isnan(energy_dict['Student'])]
     
-    upper = max(np.percentile(energy_dict['Student'], 90), 
-                np.percentile(energy_dict['GT'], 90))
-    lower = min(energy_dict['GT'].min(), energy_dict['Student'].min())
+    if len(energy_dict['Student']) == 0:
+        upper = energy_dict['GT'].max()
+        lower = energy_dict['GT'].min()
+    else:
+        upper = max(energy_dict['GT'].max(), np.percentile(energy_dict['Student'], 90))
+        lower = min(energy_dict['GT'].min(), energy_dict['Student'].min())
     
     for name, energy in energy_dict.items():
         plt.hist(energy, range=(lower, upper), bins=40, density=False, label=name, alpha=0.5)

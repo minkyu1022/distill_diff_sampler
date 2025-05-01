@@ -1,7 +1,7 @@
 CUDA_VISIBLE_DEVICES=7 python src/train.py \
   --method mle \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
-  --project final_lj13 \
+  --project real_final_lj13 \
   --data_dir data/lj13/mala \
   --energy lj13 \
   --bwd \

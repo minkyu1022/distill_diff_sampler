@@ -3,13 +3,14 @@ import math
 import numpy as np
 import torch.nn as nn
 
-from utils import gaussian_params
-
 from tbg.tbg.models2 import EGNN_dynamics_AD2_cat
-
 from schedule import LinearNoiseSchedule, GeometricNoiseSchedule
 
 logtwopi = math.log(2 * math.pi)
+
+def gaussian_params(tensor):
+    mean, logvar = torch.chunk(tensor, 2, dim=-1)
+    return mean, logvar
 
 class GFN(nn.Module):
     def __init__(self, dim: int, s_emb_dim: int, hidden_dim: int,
@@ -107,22 +108,22 @@ class GFN(nn.Module):
         else:
             self.flow_model = torch.nn.Parameter(torch.tensor(0.).to(self.device))
 
-        if self.langevin:
-            self.langevin_scaling_model = EGNN_dynamics_AD2_cat(
-                n_particles=n_particles,
-                device=self.device,
-                n_dimension=dim // n_particles,
-                h_initial=h_initial,
-                hidden_nf=hidden_dim,
-                act_fn=torch.nn.SiLU(),
-                n_layers=joint_layers,
-                recurrent=True,
-                tanh=True,
-                attention=True,
-                condition_time=True,
-                mode="egnn_flow",
-                agg="sum",
-            )
+        # if self.langevin:
+        #     self.langevin_scaling_model = EGNN_dynamics_AD2_cat(
+        #         n_particles=n_particles,
+        #         device=self.device,
+        #         n_dimension=dim // n_particles,
+        #         h_initial=h_initial,
+        #         hidden_nf=hidden_dim,
+        #         act_fn=torch.nn.SiLU(),
+        #         n_layers=joint_layers,
+        #         recurrent=True,
+        #         tanh=True,
+        #         attention=True,
+        #         condition_time=True,
+        #         mode="egnn_flow",
+        #         agg="sum",
+        #     )
         
         self.joint_model = EGNN_dynamics_AD2_cat(
             n_particles=n_particles,
@@ -163,8 +164,10 @@ class GFN(nn.Module):
         s_new = torch.cat((s_new, dummy), dim=-1)
         
         if self.langevin:
-            scale = self.langevin_scaling_model(t, s)
-            s_new[..., :self.dim] += scale * grad_log_r
+            # scale = self.langevin_scaling_model(t, s)
+            # s_new[..., :self.dim] += scale * grad_log_r
+            # scale = self.langevin_scaling_model(t, s)
+            s_new[..., :self.dim] += grad_log_r
         
         if self.clipping:
             s_new = torch.clip(s_new, -self.gfn_clip, self.gfn_clip)
