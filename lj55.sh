@@ -15,4 +15,3 @@ sleep 1
 bash script/lj55/tb_ls.sh 7 1 &
 sleep 1
 wait
-

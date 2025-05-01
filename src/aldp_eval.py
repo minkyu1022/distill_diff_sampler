@@ -66,7 +66,7 @@ parser.add_argument('--prioritized', type=str, default="rank", choices=('none', 
 parser.add_argument('--sampling', type=str, default="buffer", choices=('sleep_phase', 'energy', 'buffer'))
 
 # Logging config
-parser.add_argument('--eval_size', type=int, default=5000)
+parser.add_argument('--eval_size', type=int, default=10000)
 
 args = parser.parse_args()
 

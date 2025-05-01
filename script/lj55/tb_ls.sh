@@ -12,7 +12,7 @@ fi
 CUDA_VISIBLE_DEVICES=6 python src/train.py \
   --method tb_ls \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
-  --project lj55 \
+  --project real_final_lj55 \
   --teacher mala \
   --energy lj55 \
   --local_search \

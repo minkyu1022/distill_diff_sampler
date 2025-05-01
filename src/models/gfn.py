@@ -106,7 +106,7 @@ class GFN(nn.Module):
                 agg="sum",
             )
         else:
-            self.flow_model = torch.nn.Parameter(torch.tensor(0.).to(self.device))
+            self.flow_model = torch.nn.Parameter(torch.tensor(0., device=self.device))
 
         # if self.langevin:
         #     self.langevin_scaling_model = EGNN_dynamics_AD2_cat(

@@ -12,7 +12,7 @@ fi
 CUDA_VISIBLE_DEVICES=2 python src/train.py \
   --method subtb_lp \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
-  --project lj55 \
+  --project real_final_lj55 \
   --energy lj55 \
   --mode_fwd subtb \
   --langevin \

@@ -113,7 +113,7 @@ parser.add_argument('--sampling', type=str, default="buffer", choices=('sleep_ph
 
 # Logging config
 parser.add_argument('--checkpoint', type=str, default="")
-parser.add_argument('--eval_size', type=int, default=10000)
+parser.add_argument('--eval_size', type=int, default=4000)
 
 args = parser.parse_args()
 
@@ -306,7 +306,6 @@ def train(name, energy, buffer, buffer_ls, logging_dict):
     with torch.no_grad():
         metrics.update(eval(name, energy, buffer, gfn_model, True))
     wandb.log(metrics)
-    save_checkpoint(name, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer, metrics, logging_dict)
 
 if __name__ == '__main__':
     # load energy, teacher, and model    
@@ -341,7 +340,7 @@ if __name__ == '__main__':
             yaml.dump(config, f, default_flow_style=False)
 
         if args.method == 'ours' and args.data_dir:
-            gfn_model.flow_model = buffer.load_data(args.data_dir)
+            gfn_model.flow_model = torch.nn.Parameter(torch.tensor(buffer.load_data(args.data_dir), device=args.device))
     else:
         path = f'result/{args.checkpoint}/ckpt.pth'
         logging_dict = load_checkpoint(path, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer)
