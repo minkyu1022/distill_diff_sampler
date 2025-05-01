@@ -296,6 +296,7 @@ def train(name, energy, buffer, buffer_ls, logging_dict):
         logging_dict['epoch'] = logging_dict['epoch'] + 1
         
         if logging_dict['epoch'] % 100 == 0:
+            print(f"Epoch {logging_dict['epoch']}: GFN loss: {metrics['train/gfn_loss']:.4f}, RND loss: {metrics['train/rnd_loss']:.4f}, Energy call count: {metrics['train/energy_call_count']}")
             gfn_model.eval()
             with torch.no_grad():
                 metrics.update(eval(name, energy, buffer, gfn_model))
@@ -315,7 +316,7 @@ if __name__ == '__main__':
                           rank_weight=args.rank_weight, prioritized=args.prioritized)
     buffer_ls = ReplayBuffer(args.buffer_size, 'cpu', energy.log_reward, args.batch_size, data_ndim=energy.data_ndim, beta=args.beta,
                           rank_weight=args.rank_weight, prioritized=args.prioritized)
-    gfn_model, rnd_model, gfn_optimizer, rnd_optimizer = init_model(args, energy)
+    gfn_model, rnd_model = init_model(args, energy)
     
     # load checkpoint
     name = f'result/{args.date}'
@@ -340,8 +341,10 @@ if __name__ == '__main__':
             yaml.dump(config, f, default_flow_style=False)
 
         if args.method == 'ours' and args.data_dir:
-            gfn_model.flow_model = torch.nn.Parameter(torch.tensor(buffer.load_data(args.data_dir), device=args.device))
+            gfn_model.flow_model = torch.nn.Parameter(buffer.load_data(args.data_dir).to(args.device))
+        gfn_optimizer, rnd_optimizer = init_optimizer(args, gfn_model, rnd_model)
     else:
+        gfn_optimizer, rnd_optimizer = init_optimizer(args, gfn_model, rnd_model)
         path = f'result/{args.checkpoint}/ckpt.pth'
         logging_dict = load_checkpoint(path, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer)
         with open(f'result/{args.checkpoint}/config.yml', 'r') as f:

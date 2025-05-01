@@ -23,7 +23,7 @@ def save_checkpoint(name, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer, me
         np.save(f'{name}/{k}.npy', np.array(v))
     if logging_dict['epoch'] % 1000 == 0:
         torch.save(gfn_model.state_dict(), f'{name}/policy_{logging_dict["epoch"]}.pt')
-        torch.save(rnd_model.state_dict(), f'{name}/rnd_{logging_dict["epoch"].pt}')
+        torch.save(rnd_model.state_dict(), f'{name}/rnd_{logging_dict["epoch"]}.pt')
     torch.save(gfn_model.state_dict(), f'{name}/policy.pt')
     torch.save(rnd_model.state_dict(), f'{name}/rnd.pt')
     torch.save({
