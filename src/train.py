@@ -55,7 +55,6 @@ parser.add_argument('--predictor_layers', type=int, default=3)
 
 # Training config
 parser.add_argument('--round', type=int, default=1)
-# parser.add_argument('--epochs', type=int, default=20000)
 parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--lr_rnd', type=float, default=1e-3)
 parser.add_argument('--lr_flow', type=float, default=1e-3)

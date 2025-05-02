@@ -84,14 +84,11 @@ class LJ13(LennardJonesEnergy):
             n_particles=13,
             device=args.device,
         )
-        self.approx_sample = torch.tensor(
-            np.load(f"data/lj13/LJ13.npy"),
-            device=args.device,
-        )
+        self.approx_sample = torch.tensor(np.load(f"data/lj13/LJ13.npy"))
         self.initial_position = self.approx_sample[0]
 
         if args.method in ['ours', 'mle']:
-            self.energy_call_count = 3000000 # 6000 max_iter_ls * 500 batch_size for 1 round teacher
+            self.energy_call_count = 2000000 # 4000 max_iter_ls * 500 batch_size for 1 round teacher
         else:
             self.energy_call_count = 0
         
@@ -111,14 +108,11 @@ class LJ55(LennardJonesEnergy):
             n_particles=55,
             device=args.device,
         )
-        self.approx_sample = torch.tensor(
-            np.load(f"data/lj55/LJ55.npy"),
-            device=args.device,
-        )
+        self.approx_sample = torch.tensor(np.load(f"data/lj55/LJ55.npy"))
         self.initial_position = self.approx_sample[0]
 
         if args.method in ['ours', 'mle']:
-            self.energy_call_count = 4000000 # 20000 max_iter_ls * 200 batch_size for 1 round teacher
+            self.energy_call_count = 3000000 # 15000 max_iter_ls * 200 batch_size for 1 round teacher
         else:
             self.energy_call_count = 0
         

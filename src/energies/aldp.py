@@ -80,20 +80,13 @@ class ALDP(BaseSet):
         self.data_ndim = len(atomic_numbers) * 3
         self.initial_position = torch.tensor(initial_position, device=self.device)
         
-        self.samples = self.load_data()
+        self.samples = torch.tensor(np.load(f"data/aldp/aldp.npy"))
+        self.samples = self.samples[torch.randperm(self.samples.shape[0], generator=torch.Generator().manual_seed(0))]
         
         if args.method in ['ours', 'mle']:
-            self.energy_call_count = 60000000 # 200000 max_iter_ls * 300 batch_size for 1 round teacher
+            self.energy_call_count = 60000000 # 200000 length_md * 300 batch_size for 1 round teacher
         else:
             self.energy_call_count = 0
-
-    def load_data(self):
-        samples = []
-        for file in sorted(os.listdir(os.path.join('data/aldp/gt', 'positions')))[-1000:]:
-            samples.append(np.load(os.path.join('data/aldp/gt', 'positions', file)))
-        samples = np.concatenate(samples, axis=0).reshape(-1, self.data_ndim)
-        samples = torch.tensor(samples)
-        return samples
 
     def energy(self, x, count=False):
         x = x.reshape(-1, self.data_ndim//3, 3)
@@ -115,10 +108,7 @@ class ALDP(BaseSet):
         return energies_kJmol
 
     def sample(self, batch_size):
-        num_samples = self.samples.shape[0]
-        perm = torch.randperm(num_samples)
-        indices = perm[:batch_size]
-        return self.samples[indices]
+        return self.samples[torch.randperm(batch_size)]
 
     def interatomic_distance(self, x):
         return interatomic_distance(x, self.data_ndim//3, 3, remove_duplicates=True)
