@@ -20,7 +20,6 @@ CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --energy lj13 \
   --teacher mala \
   --epochs 5000 10000 \
-  --rnd_weight 1000000 \
   --max_grad_norm 1.0 \
   --burn_in 4000 \
   --max_iter_ls 6000 \
@@ -28,6 +27,7 @@ CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --rnd_weight ${RND_WEIGHT:-1000000} \
   --lr_policy ${LR_POLICY:-5e-4} \
   --lr_flow ${LR_POLICY:-1e-3} \
+  --gfn_clip ${RND_WEIGHT:-1000000} \
   --ld_schedule \
   --both_ways \
   --clipping \
