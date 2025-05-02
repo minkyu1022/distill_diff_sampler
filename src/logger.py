@@ -26,6 +26,7 @@ def save_checkpoint(name, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer, me
         torch.save(rnd_model.state_dict(), f'{name}/rnd_{logging_dict["epoch"]}.pt')
     torch.save(gfn_model.state_dict(), f'{name}/policy.pt')
     torch.save(rnd_model.state_dict(), f'{name}/rnd.pt')
+    
     torch.save({
         'epoch': logging_dict['epoch'],
         'gfn_model': gfn_model.state_dict(),
@@ -33,7 +34,7 @@ def save_checkpoint(name, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer, me
         'gfn_optimizer': gfn_optimizer.state_dict(),
         'rnd_optimizer': rnd_optimizer.state_dict(),
         'logging_dict': logging_dict
-    }, f'{name}/ckpt.pth')
+    }, f'{name}/ckpt_{logging_dict["epoch"]}.pth')
     
     
 def load_checkpoint(path, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer):

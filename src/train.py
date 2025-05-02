@@ -113,6 +113,7 @@ parser.add_argument('--sampling', type=str, default="buffer", choices=('sleep_ph
 
 # Logging config
 parser.add_argument('--checkpoint', type=str, default="")
+parser.add_argument('--checkpoint_epoch', type=int, default=0)
 parser.add_argument('--eval_size', type=int, default=4000)
 
 args = parser.parse_args()
@@ -271,12 +272,13 @@ def bwd_train_step(energy, gfn_model, rnd_model, buffer, buffer_ls, exploration_
     
     return loss, rnd_loss
 
-def train(name, energy, buffer, buffer_ls, logging_dict):
+def train(name, energy, buffer, buffer_ls, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer, logging_dict):
     metrics = dict()
     
     total_epochs = sum(args.epochs)
     while logging_dict['epoch'] < total_epochs:
         if logging_dict['epoch'] in args.epochs:
+            gfn_model.eval()
             rnd_model.eval()
             if args.energy == 'aldp':
                 initial_positions = buffer.sample_pos(args.teacher_batch_size).to(args.device)
@@ -286,6 +288,11 @@ def train(name, energy, buffer, buffer_ls, logging_dict):
             samples, rewards = teacher.sample(initial_positions, expl_model=rnd_model)
             buffer.add(samples.detach().cpu(), rewards.detach().cpu())
             
+            flow_data = gfn_model.flow_model
+            gfn_model, rnd_model = init_model(args, energy)
+            gfn_model.flow_model = flow_data
+            gfn_optimizer, rnd_optimizer = init_optimizer(args, gfn_model, rnd_model)
+            
         gfn_model.train()
         rnd_model.train()
 
@@ -293,7 +300,6 @@ def train(name, energy, buffer, buffer_ls, logging_dict):
                                            buffer, buffer_ls, args.exploration_factor, args.exploration_wd)
     
         metrics['train/energy_call_count'] = energy.energy_call_count
-        logging_dict['epoch'] = logging_dict['epoch'] + 1
         
         if logging_dict['epoch'] % 100 == 0:
             print(f"Epoch {logging_dict['epoch']}: GFN loss: {metrics['train/gfn_loss']:.4f}, RND loss: {metrics['train/rnd_loss']:.4f}, Energy call count: {metrics['train/energy_call_count']}")
@@ -302,6 +308,8 @@ def train(name, energy, buffer, buffer_ls, logging_dict):
                 metrics.update(eval(name, energy, buffer, gfn_model))
             wandb.log(metrics, step=logging_dict['epoch'])
             save_checkpoint(name, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer, metrics, logging_dict)
+            
+        logging_dict['epoch'] = logging_dict['epoch'] + 1
 
     gfn_model.eval()
     with torch.no_grad():
@@ -317,6 +325,9 @@ if __name__ == '__main__':
     buffer_ls = ReplayBuffer(args.buffer_size, 'cpu', energy.log_reward, args.batch_size, data_ndim=energy.data_ndim, beta=args.beta,
                           rank_weight=args.rank_weight, prioritized=args.prioritized)
     gfn_model, rnd_model = init_model(args, energy)
+    if args.method == 'ours' and args.data_dir:
+        gfn_model.flow_model = torch.nn.Parameter(buffer.load_data(args.data_dir).to(args.device))
+    gfn_optimizer, rnd_optimizer = init_optimizer(args, gfn_model, rnd_model)
     
     # load checkpoint
     name = f'result/{args.date}'
@@ -339,21 +350,13 @@ if __name__ == '__main__':
         config = vars(args)
         with open(f'{name}/config.yml', 'w') as f:
             yaml.dump(config, f, default_flow_style=False)
-
-        if args.method == 'ours' and args.data_dir:
-            gfn_model.flow_model = torch.nn.Parameter(buffer.load_data(args.data_dir).to(args.device))
-        gfn_optimizer, rnd_optimizer = init_optimizer(args, gfn_model, rnd_model)
     else:
-        gfn_optimizer, rnd_optimizer = init_optimizer(args, gfn_model, rnd_model)
-        path = f'result/{args.checkpoint}/ckpt.pth'
+        path = f'result/{args.checkpoint}/ckpt_{args.checkpoint_epoch}.pth'
         logging_dict = load_checkpoint(path, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer)
         with open(f'result/{args.checkpoint}/config.yml', 'r') as f:
             config = yaml.safe_load(f)
-        if args.method == 'ours' and args.data_dir:
-            buffer.load_data(args.data_dir)
-        
 
     wandb.init(project=args.project, config=config)
     wandb.run.log_code(".")
     
-    train(name, energy, buffer, buffer_ls, logging_dict)
+    train(name, energy, buffer, buffer_ls, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer, logging_dict)
