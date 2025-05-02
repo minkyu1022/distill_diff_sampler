@@ -16,7 +16,7 @@ CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --data_dir data/lj13/mala \
   --energy lj13 \
   --teacher mala \
-  --epochs 5000 \
+  --epochs 5000 10000 \
   --rnd_weight 1000000 \
   --max_grad_norm 1.0 \
   --burn_in 4000 \
