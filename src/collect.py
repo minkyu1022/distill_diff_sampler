@@ -63,9 +63,7 @@ def get_teacher():
 
 if __name__ == '__main__':    
     name = f'data/{args.save_dir}/{args.teacher}'
-    if not os.path.exists(name):
-        for subdir in ['positions', 'rewards']:
-            os.makedirs(f'{name}/{subdir}')
+    os.makedirs(name, exist_ok=True)
 
     wandb.init(project=args.project, config=args.__dict__)
     wandb.run.log_code(".")
