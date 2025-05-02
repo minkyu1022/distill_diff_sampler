@@ -13,6 +13,7 @@ parser = argparse.ArgumentParser()
 
 # System config
 parser.add_argument('--seed', type=int, default=0)
+parser.add_argument('--save_dir', type=str, default='')
 parser.add_argument('--date', type=str, default='test')
 parser.add_argument('--device', type=str, default='cuda')
 parser.add_argument('--method', type=str, default='ours')
@@ -61,7 +62,7 @@ def get_teacher():
 
 
 if __name__ == '__main__':    
-    name = f'data/{args.energy}/{args.teacher}'
+    name = f'data/{args.save_dir}/{args.teacher}'
     if not os.path.exists(name):
         for subdir in ['positions', 'rewards']:
             os.makedirs(f'{name}/{subdir}')

@@ -19,9 +19,11 @@ CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --rnd_weight ${RND_WEIGHT:-1000000} \
   --max_grad_norm 1.0 \
   --ld_schedule \
+  --burn_in 10000 \
+  --max_iter_ls 15000 \
   --teacher_batch_size 100 \
   --batch_size 4 \
-  --epochs 10000 20000 \
+  --epochs 10000 30000 \
   --both_ways \
   --clipping \
   --seed $SEED \

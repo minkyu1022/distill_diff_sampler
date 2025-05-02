@@ -17,7 +17,7 @@ CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --data_dir data/aldp/md \
   --rnd_weight ${RND_WEIGHT:-1000000000} \
   --energy aldp \
-  --epochs 20000 40000 \
+  --epochs 20000 60000 \
   --both_ways \
   --clipping \
   --seed $SEED

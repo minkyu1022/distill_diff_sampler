@@ -275,8 +275,7 @@ def bwd_train_step(energy, gfn_model, rnd_model, buffer, buffer_ls, exploration_
 def train(name, energy, buffer, buffer_ls, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer, logging_dict):
     metrics = dict()
     
-    total_epochs = sum(args.epochs)
-    while logging_dict['epoch'] < total_epochs:
+    while logging_dict['epoch'] < args.epochs[-1]:
         if logging_dict['epoch'] in args.epochs:
             gfn_model.eval()
             rnd_model.eval()

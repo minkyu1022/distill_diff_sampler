@@ -4,3 +4,13 @@ CUDA_VISIBLE_DEVICES=2 python src/collect.py \
   --teacher mala \
   --ld_schedule \
   --teacher_batch_size 200 \
+
+# CUDA_VISIBLE_DEVICES=2 python src/collect.py \
+#   --project lj55_mala \
+#   --energy lj55 \
+#   --save_dir lj55_bad \
+#   --burn_in 10000 \
+#   --max_iter_ls 15000 \
+#   --teacher mala \
+#   --ld_schedule \
+#   --teacher_batch_size 200 \
