@@ -22,7 +22,8 @@ class GFN(nn.Module):
                  learn_pb: bool = False,
                  architecture: str = 'egnn', lgv_layers: int = 3, joint_layers: int = 2,
                  zero_init: bool = False, device=torch.device('cuda'), 
-                 scheduler: str = 'constant', sigma_max: float = 1, sigma_min: float = 0.01, energy: str = 'aldp'):
+                 scheduler: str = 'constant', sigma_max: float = 1, sigma_min: float = 0.01, energy: str = 'aldp',
+                 schedule_type: str = 'uniform', epsilon: float = 1e-4, c: float = 10):
         super(GFN, self).__init__()
         self.dim = dim
         self.harmonics_dim = harmonics_dim
@@ -34,6 +35,10 @@ class GFN(nn.Module):
         self.learned_variance = learned_variance
         self.partial_energy = partial_energy
         self.t_scale = t_scale
+        
+        self.schedule_type = schedule_type
+        self.epsilon = epsilon
+        self.c = c
 
         self.clipping = clipping
         self.lgv_clip = lgv_clip
@@ -53,8 +58,9 @@ class GFN(nn.Module):
             noise_schedule = GeometricNoiseSchedule(sigma_max, sigma_min, 1)
         else:
             raise ValueError("Unknown scheduler type")
+        
         self.noise_schedule = noise_schedule.to(device)
-        self.dt = 1. / trajectory_length
+        
         self.log_var_range = log_var_range
         self.device = device
         n_particles = dim // 3
@@ -181,59 +187,66 @@ class GFN(nn.Module):
         logf = torch.zeros((bsz, self.trajectory_length + 1), device=self.device)
         states = torch.zeros((bsz, self.trajectory_length + 1, self.dim), device=self.device)
 
+        # build arbitrary time schedule
+        self.time_schedule = self.build_time_schedule()
         for i in range(self.trajectory_length):
+            # extract start and end times
+            t_i = self.time_schedule[i]
+            t_ip1 = self.time_schedule[i + 1]
+            dt = t_ip1 - t_i
+
+            # center and reshape
             s = s.reshape(s.shape[0], -1, 3)
             s = s - torch.mean(s, dim=-2, keepdims=True)
             s = s.reshape(s.shape[0], -1)
-                
-            pfs, flow = self.predict_next_state(s, i * self.dt, log_r)
-            pf_mean, pflogvars = self.split_params(pfs, self.noise_schedule(i*self.dt))
 
+            # predict dynamics
+            pfs, flow = self.predict_next_state(s, t_i, log_r)
+            pf_mean, pflogvars = self.split_params(pfs, self.noise_schedule(t_i))
+
+            # flow term
             logf[:, i] = flow
             if self.partial_energy:
-                ref_log_var = np.log(self.t_scale * max(1, i) * self.dt)
+                ref_log_var = np.log(self.t_scale * t_i)
                 log_p_ref = -0.5 * (logtwopi + ref_log_var + np.exp(-ref_log_var) * (s ** 2)).sum(1)
-                logf[:, i] += (1 - i * self.dt) * log_p_ref + i * self.dt * log_r(s)
+                logf[:, i] += (1 - t_i) * log_p_ref + t_i * log_r(s)
 
+            # adjust variance for exploration
             if exploration_std is None:
-                if pis:
-                    pflogvars_sample = pflogvars
-                else:
-                    pflogvars_sample = pflogvars.detach()
+                pflogvars_sample = pflogvars if pis else pflogvars.detach()
             else:
                 expl = exploration_std(i)
                 if expl <= 0.0:
                     pflogvars_sample = pflogvars.detach()
                 else:
-                    add_log_var = torch.full_like(pflogvars, np.log(exploration_std(i) / np.sqrt(self.dt)) * 2)
-                    if pis:
-                        pflogvars_sample = torch.logaddexp(pflogvars, add_log_var)
-                    else:
-                        pflogvars_sample = torch.logaddexp(pflogvars, add_log_var).detach()
+                    add_log_var = torch.full_like(pflogvars, np.log(expl / np.sqrt(dt)) * 2)
+                    pflogvars_sample = torch.logaddexp(pflogvars, add_log_var) if pis else torch.logaddexp(pflogvars, add_log_var).detach()
 
-            if pis:
-                s_ = s + self.dt * pf_mean + np.sqrt(self.dt) * (
-                        pflogvars_sample / 2).exp() * torch.randn_like(s, device=self.device)
-            else:
-                s_ = s + self.dt * pf_mean.detach() + np.sqrt(self.dt) * (
-                        pflogvars_sample / 2).exp() * torch.randn_like(s, device=self.device)
+            # sample forward
+            noise_scale = np.sqrt(dt) * (pflogvars_sample / 2).exp()
+            s_ = s + dt * (pf_mean if pis else pf_mean.detach()) + noise_scale * torch.randn_like(s, device=self.device)
 
-            noise = ((s_ - s) - self.dt * pf_mean) / (np.sqrt(self.dt) * (pflogvars / 2).exp())
-            logpf[:, i] = -0.5 * (noise ** 2 + logtwopi + np.log(self.dt) + pflogvars).sum(1)
+            # compute forward log-prob
+            noise = ((s_ - s) - dt * pf_mean) / (np.sqrt(dt) * (pflogvars / 2).exp())
+            logpf[:, i] = -0.5 * (noise ** 2 + logtwopi + np.log(dt) + pflogvars).sum(1)
 
-            if self.learn_pb:
-                pbs = self.back_model((i+1)*self.dt, s_)
+            # backward transition
+            if self.learn_pb and i > 0:
+                pbs = self.back_model(t_ip1, s_)
                 dmean, dvar = gaussian_params(pbs)
                 back_mean_correction = 1 + dmean.tanh() * self.pb_scale_range
                 back_var_correction = 1 + dvar.tanh() * self.pb_scale_range
             else:
-                back_mean_correction, back_var_correction = torch.ones_like(s_), torch.ones_like(s_)
+                back_mean_correction = back_var_correction = torch.ones_like(s_)
+
             if i > 0:
-                back_mean = s_ - self.noise_schedule.brownian_drift((i+1)*self.dt, s_) * self.dt * back_mean_correction
-                back_var = (self.noise_schedule((i+1)*self.dt) ** 2) * self.dt * i / (i + 1) * back_var_correction
+                drift = self.noise_schedule.brownian_drift(t_ip1, s_)
+                back_mean = s_ - drift * dt * back_mean_correction
+                back_var = (self.noise_schedule(t_ip1) ** 2) * dt * (t_i / t_ip1) * back_var_correction
                 noise_backward = (s - back_mean) / back_var.sqrt()
                 logpb[:, i] = -0.5 * (noise_backward ** 2 + logtwopi + back_var.log()).sum(1)
 
+            # update for next step
             s = s_
             states[:, i + 1] = s
 
@@ -246,42 +259,51 @@ class GFN(nn.Module):
         logpb = torch.zeros((bsz, self.trajectory_length), device=self.device)
         logf = torch.zeros((bsz, self.trajectory_length + 1), device=self.device)
         states = torch.zeros((bsz, self.trajectory_length + 1, self.dim), device=self.device)
+
+        # build arbitrary time schedule
+        self.time_schedule = self.build_time_schedule()
         states[:, -1] = s
 
         for i in range(self.trajectory_length):
+            # current and previous time indices in schedule
+            t_curr = self.time_schedule[self.trajectory_length - i]
+            t_prev = self.time_schedule[self.trajectory_length - i - 1]
+            dt = t_curr - t_prev
+
+            # backward diffusion step (except first iteration)
             if i < self.trajectory_length - 1:
                 if self.learn_pb:
-                    pbs = self.back_model(1. - i * self.dt, s)
+                    pbs = self.back_model(t_curr, s)
                     dmean, dvar = gaussian_params(pbs)
-                    back_mean_correction = 1 + dmean.tanh() * self.pb_scale_range
-                    back_var_correction = 1 + dvar.tanh() * self.pb_scale_range
+                    back_mean_corr = 1 + dmean.tanh() * self.pb_scale_range
+                    back_var_corr = 1 + dvar.tanh() * self.pb_scale_range
                 else:
-                    back_mean_correction, back_var_correction = torch.ones_like(s), torch.ones_like(s)
+                    back_mean_corr = back_var_corr = torch.ones_like(s)
 
-                mean = s - self.dt * self.noise_schedule.brownian_drift(1. - i * self.dt, s) * back_mean_correction
-                var = ((self.noise_schedule(1. - i * self.dt) ** 2) * self.dt * (1. - (i + 1) * self.dt)) / (
-                            1 - i * self.dt) * back_var_correction
-                
+                drift = self.noise_schedule.brownian_drift(t_curr, s)
+                mean = s - dt * drift * back_mean_corr
+                var = ((self.noise_schedule(t_curr) ** 2) * dt * t_prev / t_curr) * back_var_corr
                 s_ = mean.detach() + var.sqrt().detach() * torch.randn_like(s, device=self.device)
-                
                 noise_backward = (s_ - mean) / var.sqrt()
                 logpb[:, self.trajectory_length - i - 1] = -0.5 * (noise_backward ** 2 + logtwopi + var.log()).sum(1)
             else:
                 s_ = torch.zeros_like(s)
 
-            pfs, flow = self.predict_next_state(s_, (1. - (i + 1) * self.dt), log_r)
-            pf_mean, pflogvars = self.split_params(pfs, self.noise_schedule(1. - (i + 1) * self.dt))
+            # forward dynamics on backward step
+            pfs, flow = self.predict_next_state(s_, t_prev, log_r)
+            pf_mean, pflogvars = self.split_params(pfs, self.noise_schedule(t_prev))
 
             logf[:, self.trajectory_length - i - 1] = flow
             if self.partial_energy:
-                ref_log_var = np.log(self.t_scale * max(1, self.trajectory_length - i - 1) * self.dt)
+                ref_log_var = np.log(self.t_scale * t_prev)
                 log_p_ref = -0.5 * (logtwopi + ref_log_var + np.exp(-ref_log_var) * (s ** 2)).sum(1)
-                logf[:, self.trajectory_length - i - 1] += (i + 1) * self.dt * log_p_ref + (
-                        self.trajectory_length - i - 1) * self.dt * log_r(s)
+                logf[:, self.trajectory_length - i - 1] += (1 - t_prev) * log_p_ref + t_prev * log_r(s)
 
-            noise = ((s - s_) - self.dt * pf_mean) / (np.sqrt(self.dt) * (pflogvars / 2).exp())
-            logpf[:, self.trajectory_length - i - 1] = -0.5 * (noise ** 2 + logtwopi + np.log(self.dt) + pflogvars).sum(1)
+            # backward forward transition logpf
+            noise = ((s - s_) - dt * pf_mean) / (np.sqrt(dt) * (pflogvars / 2).exp())
+            logpf[:, self.trajectory_length - i - 1] = -0.5 * (noise ** 2 + logtwopi + np.log(dt) + pflogvars).sum(1)
 
+            # update state
             s = s_
             states[:, self.trajectory_length - i - 1] = s
 
@@ -297,3 +319,26 @@ class GFN(nn.Module):
 
     def forward(self, s, exploration_std=None, log_r=None):
         return self.get_trajectory_fwd(s, exploration_std, log_r)
+
+    def build_time_schedule(self):
+        """Return a list of length `trajectory_length+1`:
+           uniform, random‐nonuniform or equidistant. """
+        N = self.trajectory_length
+
+        if self.schedule_type == 'uniform':
+            return [i * 1.0  / N for i in range(N + 1)]
+
+        elif self.schedule_type == 'random':
+            # zi ~ U([1,c]), Δt_i = zi / sum(z)
+            z = torch.rand(N, device=self.device) * (self.c - 1) + 1
+            delta_t = (z / z.sum()).tolist()
+            t = [0.] + list(torch.cumsum(delta_t, 0).cpu())
+            return t  # length N+1
+
+        elif self.schedule_type == 'equidistant':
+            # t1 ~ U([ε, 2/N-ε]), then t_i = t1 + (i-1)/N
+            t1 = float(torch.empty(1).uniform_(self.epsilon, 2/N - self.epsilon))
+            mid = [t1 + (i-1)/N for i in range(1, N)]
+            return [0.] + mid + [1.]
+        else:
+            raise ValueError(f"Unknown schedule_type {self.schedule_type!r}")
