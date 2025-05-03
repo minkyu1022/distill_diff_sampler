@@ -128,7 +128,7 @@ def draw_aldp(ax, coordinate):
     """
     
     # get topology (md.Topology) from pdb file
-    topology = md.load("/home/kiyoung/distill_diff_sampler/data/aldp/aldp.pdb").topology
+    topology = md.load("./data/aldp/aldp.pdb").topology
 
     center_of_mass = np.mean(coordinate, axis=0)
     coordinate = coordinate - center_of_mass

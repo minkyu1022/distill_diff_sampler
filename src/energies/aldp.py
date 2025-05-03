@@ -1,5 +1,3 @@
-import os
-
 import torch
 import torchani
 import numpy as np
