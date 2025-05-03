@@ -93,7 +93,7 @@ parser.add_argument('--langevin_scaling_per_dimension', action='store_true', def
 parser.add_argument('--scheduler', type=str, default='linear', choices=('linear', 'geometric'))
 parser.add_argument('--mode_fwd', type=str, default="tb", choices=('tb', 'tb-avg', 'db', 'subtb', "pis"))
 parser.add_argument('--student_init', type=str, default='reinit', choices=('reinit', 'partialinit','finetune'))
-parser.add_argument('--scheduler_type', type=str, default='uniform', choices=('uniform', 'random', 'equidistant'))
+parser.add_argument('--scheduler_type', type=str, default='random', choices=('uniform', 'random', 'equidistant'))
 
 ## Local search
 parser.add_argument('--ls_cycle', type=int, default=100)

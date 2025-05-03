@@ -12,11 +12,11 @@ fi
 CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --method mle \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
-  --project aldp \
+  --project nips_aldp \
   --data_dir data/aldp/md \
   --energy aldp \
   --bwd \
   --mode_bwd mle \
-  --epochs 40000 \
+  --epochs 60000 \
   --clipping \
   --seed $SEED \

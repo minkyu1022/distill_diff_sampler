@@ -188,11 +188,11 @@ class GFN(nn.Module):
         states = torch.zeros((bsz, self.trajectory_length + 1, self.dim), device=self.device)
 
         # build arbitrary time schedule
-        self.time_schedule = self.build_time_schedule()
+        time_schedule = self.build_time_schedule()
         for i in range(self.trajectory_length):
             # extract start and end times
-            t_i = self.time_schedule[i]
-            t_ip1 = self.time_schedule[i + 1]
+            t_i = time_schedule[i]
+            t_ip1 = time_schedule[i + 1]
             dt = t_ip1 - t_i
 
             # center and reshape
@@ -207,7 +207,7 @@ class GFN(nn.Module):
             # flow term
             logf[:, i] = flow
             if self.partial_energy:
-                ref_log_var = np.log(self.t_scale * t_i)
+                ref_log_var = np.log(self.t_scale * max(t_i, time_schedule[1]))
                 log_p_ref = -0.5 * (logtwopi + ref_log_var + np.exp(-ref_log_var) * (s ** 2)).sum(1)
                 logf[:, i] += (1 - t_i) * log_p_ref + t_i * log_r(s)
 
@@ -261,13 +261,13 @@ class GFN(nn.Module):
         states = torch.zeros((bsz, self.trajectory_length + 1, self.dim), device=self.device)
 
         # build arbitrary time schedule
-        self.time_schedule = self.build_time_schedule()
+        time_schedule = self.build_time_schedule()
         states[:, -1] = s
 
         for i in range(self.trajectory_length):
             # current and previous time indices in schedule
-            t_curr = self.time_schedule[self.trajectory_length - i]
-            t_prev = self.time_schedule[self.trajectory_length - i - 1]
+            t_curr = time_schedule[self.trajectory_length - i]
+            t_prev = time_schedule[self.trajectory_length - i - 1]
             dt = t_curr - t_prev
 
             # backward diffusion step (except first iteration)
@@ -295,7 +295,7 @@ class GFN(nn.Module):
 
             logf[:, self.trajectory_length - i - 1] = flow
             if self.partial_energy:
-                ref_log_var = np.log(self.t_scale * t_prev)
+                ref_log_var = np.log(self.t_scale * max(t_prev, time_schedule[1]))
                 log_p_ref = -0.5 * (logtwopi + ref_log_var + np.exp(-ref_log_var) * (s ** 2)).sum(1)
                 logf[:, self.trajectory_length - i - 1] += (1 - t_prev) * log_p_ref + t_prev * log_r(s)
 

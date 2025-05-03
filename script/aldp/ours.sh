@@ -12,11 +12,10 @@ fi
 CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --method ours \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
-  --project aldp_scheduler_type \
+  --project nips_aldp \
   --data_dir data/aldp/md \
   --energy aldp \
-  --epochs 20000 \
-  --scheduler_type random \
+  --epochs 20000 60000 \
   --both_ways \
   --clipping \
   --seed $SEED

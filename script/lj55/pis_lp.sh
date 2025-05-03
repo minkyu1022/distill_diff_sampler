@@ -9,12 +9,13 @@ if [ -z "$GPU_DEVICE" ] || [ -z "$SEED" ]; then
   exit 1
 fi
 
-CUDA_VISIBLE_DEVICES=1 python src/train.py \
+CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --method pis_lp \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
-  --project real_final_lj55 \
+  --project nips_lj55 \
   --energy lj55 \
   --mode_fwd pis \
+  --epochs 30000 \
   --langevin \
   --batch_size 2 \
   --max_grad_norm 1.0 \
