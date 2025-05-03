@@ -67,6 +67,7 @@ parser.add_argument('--use_weight_decay', action='store_true', default=False)
 
 ## GFN
 parser.add_argument('--T', type=int, default=100)
+parser.add_argument('--eval_T', type=int, default=500)
 parser.add_argument('--t_scale', type=float, default=0.2)
 parser.add_argument('--lgv_clip', type=float, default=1e2)
 parser.add_argument('--gfn_clip', type=float, default=1e4)
@@ -92,6 +93,7 @@ parser.add_argument('--langevin_scaling_per_dimension', action='store_true', def
 parser.add_argument('--scheduler', type=str, default='linear', choices=('linear', 'geometric'))
 parser.add_argument('--mode_fwd', type=str, default="tb", choices=('tb', 'tb-avg', 'db', 'subtb', "pis"))
 parser.add_argument('--student_init', type=str, default='reinit', choices=('reinit', 'partialinit','finetune'))
+parser.add_argument('--scheduler_type', type=str, default='uniform', choices=('uniform', 'random', 'equidistant'))
 
 ## Local search
 parser.add_argument('--ls_cycle', type=int, default=100)
@@ -113,7 +115,7 @@ parser.add_argument('--sampling', type=str, default="buffer", choices=('sleep_ph
 # Logging config
 parser.add_argument('--checkpoint', type=str, default="")
 parser.add_argument('--checkpoint_epoch', type=int, default=0)
-parser.add_argument('--eval_size', type=int, default=4000)
+parser.add_argument('--eval_size', type=int, default=2000)
 
 args = parser.parse_args()
 
@@ -144,6 +146,8 @@ def get_teacher():
     return teacher
 
 def eval(name, energy, buffer, gfn_model, final=False):
+    gfn_model.trajectory_length = args.eval_T
+    gfn_model.scheduler_type = 'uniform'
     eval_dir = 'final_eval' if final else 'eval'
     metrics = dict()
     
@@ -198,6 +202,8 @@ def eval(name, energy, buffer, gfn_model, final=False):
         metrics["visualization/aldp"] = wandb.Image(aldp_fig)
         
     eval_save(name, sample_dict, energy_dict, dist_dict)
+    gfn_model.trajectory_length = args.T
+    gfn_model.scheduler_type = args.scheduler_type
     return metrics
 
 def train_step(energy, gfn_model, gfn_optimizer, rnd_model, rnd_optimizer, it, exploratory, buffer, buffer_ls, exploration_factor, exploration_wd):

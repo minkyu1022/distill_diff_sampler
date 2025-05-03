@@ -57,6 +57,7 @@ parser.add_argument('--learned_variance', action='store_true', default=False)
 parser.add_argument('--conditional_flow_model', action='store_true', default=False)
 parser.add_argument('--langevin_scaling_per_dimension', action='store_true', default=False)
 parser.add_argument('--scheduler', type=str, default='linear', choices=('linear', 'geometric'))
+parser.add_argument('--scheduler_type', type=str, default='uniform', choices=('uniform', 'random', 'equidistant'))
 
 ## Replay buffer
 parser.add_argument('--beta', type=float, default=1.)
