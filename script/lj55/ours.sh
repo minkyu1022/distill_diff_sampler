@@ -11,7 +11,7 @@ fi
 
 CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
-  --project nips_j55 \
+  --project nips_lj55 \
   --data_dir data/lj55_bad/mala \
   --energy lj55 \
   --teacher mala \
