@@ -128,6 +128,8 @@ def draw_aldp(ax, coordinate):
     """
     
     # get topology (md.Topology) from pdb file
+    coordinate = np.nan_to_num(coordinate, nan=0.0, posinf=0.0, neginf=0.0)
+    
     topology = md.load("./data/aldp/aldp.pdb").topology
 
     center_of_mass = np.mean(coordinate, axis=0)

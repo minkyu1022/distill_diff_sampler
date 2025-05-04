@@ -57,6 +57,7 @@ parser.add_argument('--learned_variance', action='store_true', default=False)
 parser.add_argument('--conditional_flow_model', action='store_true', default=False)
 parser.add_argument('--langevin_scaling_per_dimension', action='store_true', default=False)
 parser.add_argument('--scheduler', type=str, default='linear', choices=('linear', 'geometric'))
+parser.add_argument('--mode_fwd', type=str, default="tb", choices=('tb', 'tb-avg', 'db', 'subtb', "pis"))
 parser.add_argument('--scheduler_type', type=str, default='uniform', choices=('uniform', 'random', 'equidistant'))
 
 ## Replay buffer
@@ -186,7 +187,7 @@ if __name__ == '__main__':
             joint_layers=args.joint_layers, zero_init=args.zero_init, device=args.device, 
             scheduler=args.scheduler, sigma_max=args.sigma_max, sigma_min=args.sigma_min, energy=args.energy).to(args.device)
     
-    gfn_model.load_state_dict(torch.load(f'result/{args.date}/policy.pt'), strict=False)
+    gfn_model.load_state_dict(torch.load(f'result/{args.date}/policy.pt'))
     gfn_model.eval()
     
     metrics = dict()
