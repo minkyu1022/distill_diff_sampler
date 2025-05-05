@@ -30,7 +30,7 @@ parser.add_argument('--energy', type=str, default='aldp', choices=('aldp', 'lj13
 
 ## MD config
 parser.add_argument("--gamma", default=1.0, type=float)
-parser.add_argument('--n_steps', type=int, default=200000)
+parser.add_argument('--n_steps', type=int, default=30000)
 parser.add_argument("--timestep", default=5e-4, type=float)
 parser.add_argument("--temperature", default=600, type=float)
 parser.add_argument('--teacher_batch_size', type=int, default=1000)
