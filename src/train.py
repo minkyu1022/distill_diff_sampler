@@ -337,6 +337,8 @@ if __name__ == '__main__':
     name = f'result/{args.date}'
     if not os.path.exists(name):
         os.makedirs(name)
+        
+    config = vars(args)
     
     if not args.checkpoint:
         logging_dict = {
@@ -351,15 +353,11 @@ if __name__ == '__main__':
             'log_Z_learned': [],
             'energy_call_counts': []
         }
-        config = vars(args)
         with open(f'{name}/config.yml', 'w') as f:
             yaml.dump(config, f, default_flow_style=False)
     else:
         path = f'result/{args.checkpoint}/ckpt_{args.checkpoint_epoch}.pth'
         logging_dict = load_checkpoint(path, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer)
-        with open(f'result/{args.checkpoint}/config.yml', 'r') as f:
-            config = yaml.safe_load(f)
-
     wandb.init(project=args.project, config=config)
     wandb.run.log_code(".")
     
