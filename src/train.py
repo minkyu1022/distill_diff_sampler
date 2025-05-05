@@ -361,7 +361,7 @@ if __name__ == '__main__':
         with open(f'{name}/config.yml', 'w') as f:
             yaml.dump(config, f, default_flow_style=False)
     else:
-        path = f'result/{args.checkpoint}/ckpt_{args.checkpoint_epoch}.pth'
+        path = f'result/{args.checkpoint}/ckpt/{args.checkpoint_epoch}.pth'
         logging_dict = load_checkpoint(path, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer)
     wandb.init(project=args.project, config=config)
     wandb.run.log_code(".")
