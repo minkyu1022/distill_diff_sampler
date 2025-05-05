@@ -4,3 +4,5 @@ result/
 figure/
 sample/
 full_data/
+assets/
+**/__pycache__/
