@@ -3,11 +3,11 @@ import numpy as np
 
 def save_eval(name, sample_dict, energy_dict, dist_dict, logging_dict):
     for k, v in sample_dict.items():
-        np.save(f'{name}/sample/{k}_{logging_dict['epoch']}.npy', v.cpu().numpy())
+        np.save(f'{name}/sample/{k}_{logging_dict["epoch"]}.npy', v.cpu().numpy())
     for k, v in energy_dict.items():
-        np.save(f'{name}/energy/{k}_{logging_dict['epoch']}.npy', v)
+        np.save(f'{name}/energy/{k}_{logging_dict["epoch"]}.npy', v)
     for k, v in dist_dict.items():
-        np.save(f'{name}/dist/{k}_{logging_dict['epoch']}.npy', v)
+        np.save(f'{name}/dist/{k}_{logging_dict["epoch"]}.npy', v)
 
 def save_checkpoint(name, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer, metrics, logging_dict):
     logging_dict['gfn_losses'].append(metrics['train/gfn_loss'])
