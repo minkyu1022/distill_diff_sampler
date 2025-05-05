@@ -320,6 +320,7 @@ def train(name, energy, buffer, buffer_ls, gfn_model, rnd_model, gfn_optimizer, 
     gfn_model.eval()
     with torch.no_grad():
         metrics.update(eval(name, energy, buffer, gfn_model, logging_dict, True))
+    save_checkpoint(name, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer, metrics, logging_dict)
     wandb.log(metrics)
 
 if __name__ == '__main__':
