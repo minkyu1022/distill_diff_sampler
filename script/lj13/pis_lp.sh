@@ -17,6 +17,7 @@ CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --mode_fwd pis \
   --langevin \
   --max_grad_norm 1.0 \
+  --batch_size 16 \
   --clipping \
   --epochs 15000 \
   --seed $SEED \
