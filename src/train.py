@@ -145,7 +145,7 @@ def get_teacher():
         teacher = MALA(args, energy)
     return teacher
 
-def eval(name, energy, buffer, gfn_model, final=False):
+def eval(name, energy, buffer, gfn_model, logging_dict, final=False):
     gfn_model.trajectory_length = args.eval_T
     gfn_model.scheduler_type = 'uniform'
     eval_dir = 'final_eval' if final else 'eval'
@@ -201,7 +201,7 @@ def eval(name, energy, buffer, gfn_model, final=False):
         aldp_fig = draw_aldps(samples[:3])    
         metrics["visualization/aldp"] = wandb.Image(aldp_fig)
         
-    eval_save(name, sample_dict, energy_dict, dist_dict)
+    eval_save(name, sample_dict, energy_dict, dist_dict, logging_dict['epoch'])
     gfn_model.trajectory_length = args.T
     gfn_model.scheduler_type = args.scheduler_type
     return metrics
@@ -309,7 +309,7 @@ def train(name, energy, buffer, buffer_ls, gfn_model, rnd_model, gfn_optimizer, 
             print(f"Epoch {logging_dict['epoch']}: GFN loss: {metrics['train/gfn_loss']:.4f}, RND loss: {metrics['train/rnd_loss']:.4f}, Energy call count: {metrics['train/energy_call_count']}")
             gfn_model.eval()
             with torch.no_grad():
-                metrics.update(eval(name, energy, buffer, gfn_model))
+                metrics.update(eval(name, energy, buffer, gfn_model, logging_dict))
             wandb.log(metrics, step=logging_dict['epoch'])
             save_checkpoint(name, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer, metrics, logging_dict)
             
@@ -317,7 +317,7 @@ def train(name, energy, buffer, buffer_ls, gfn_model, rnd_model, gfn_optimizer, 
 
     gfn_model.eval()
     with torch.no_grad():
-        metrics.update(eval(name, energy, buffer, gfn_model, True))
+        metrics.update(eval(name, energy, buffer, gfn_model, logging_dict, True))
     wandb.log(metrics)
 
 if __name__ == '__main__':

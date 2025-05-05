@@ -1,13 +1,13 @@
 import torch
 import numpy as np
 
-def eval_save(name, sample_dict=None, energy_dict=None, dist_dict=None):
+def eval_save(name, sample_dict=None, energy_dict=None, dist_dict=None, epoch=None):
     for k, v in sample_dict.items():
-        np.save(f'{name}/{k}.npy', v.cpu().numpy())
+        np.save(f'{name}/sample_{k}_{epoch}.npy', v.cpu().numpy())
     for k, v in energy_dict.items():
-        np.save(f'{name}/{k}.npy', v)
+        np.save(f'{name}/energy_{k}_{epoch}.npy', v)
     for k, v in dist_dict.items():
-        np.save(f'{name}/{k}.npy', v)
+        np.save(f'{name}/dist_{k}_{epoch}.npy', v)
 
 def save_checkpoint(name, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer, metrics, logging_dict):
     logging_dict['gfn_losses'].append(metrics['train/gfn_loss'])
