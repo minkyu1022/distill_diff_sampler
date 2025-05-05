@@ -1,13 +1,13 @@
 import torch
 import numpy as np
 
-def eval_save(name, sample_dict=None, energy_dict=None, dist_dict=None, epoch=None):
+def save_eval(name, sample_dict, energy_dict, dist_dict, logging_dict):
     for k, v in sample_dict.items():
-        np.save(f'{name}/sample_{k}_{epoch}.npy', v.cpu().numpy())
+        np.save(f'{name}/sample/{k}_{logging_dict['epoch']}.npy', v.cpu().numpy())
     for k, v in energy_dict.items():
-        np.save(f'{name}/energy_{k}_{epoch}.npy', v)
+        np.save(f'{name}/energy/{k}_{logging_dict['epoch']}.npy', v)
     for k, v in dist_dict.items():
-        np.save(f'{name}/dist_{k}_{epoch}.npy', v)
+        np.save(f'{name}/dist/{k}_{logging_dict['epoch']}.npy', v)
 
 def save_checkpoint(name, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer, metrics, logging_dict):
     logging_dict['gfn_losses'].append(metrics['train/gfn_loss'])
@@ -21,12 +21,6 @@ def save_checkpoint(name, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer, me
     logging_dict['log_Z_learned'].append(metrics['eval/log_Z_learned'].item())
     for k, v in logging_dict.items():
         np.save(f'{name}/{k}.npy', np.array(v))
-    if logging_dict['epoch'] % 1000 == 0:
-        torch.save(gfn_model.state_dict(), f'{name}/policy_{logging_dict["epoch"]}.pt')
-        torch.save(rnd_model.state_dict(), f'{name}/rnd_{logging_dict["epoch"]}.pt')
-    torch.save(gfn_model.state_dict(), f'{name}/policy.pt')
-    torch.save(rnd_model.state_dict(), f'{name}/rnd.pt')
-    
     torch.save({
         'epoch': logging_dict['epoch'],
         'gfn_model': gfn_model.state_dict(),
@@ -34,7 +28,7 @@ def save_checkpoint(name, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer, me
         'gfn_optimizer': gfn_optimizer.state_dict(),
         'rnd_optimizer': rnd_optimizer.state_dict(),
         'logging_dict': logging_dict
-    }, f'{name}/ckpt_{logging_dict["epoch"]}.pth')
+    }, f'{name}/ckpt/{logging_dict["epoch"]}.pth')
     
     
 def load_checkpoint(path, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer):

@@ -200,8 +200,9 @@ def eval(name, energy, buffer, gfn_model, logging_dict, final=False):
     if args.energy == 'aldp':
         aldp_fig = draw_aldps(samples[:3])    
         metrics["visualization/aldp"] = wandb.Image(aldp_fig)
-        
-    eval_save(name, sample_dict, energy_dict, dist_dict, logging_dict['epoch'])
+    
+    if logging_dict['epoch'] % 1000 == 0:
+        save_eval(name, sample_dict, energy_dict, dist_dict, logging_dict)
     gfn_model.trajectory_length = args.T
     gfn_model.scheduler_type = args.scheduler_type
     return metrics
@@ -311,7 +312,8 @@ def train(name, energy, buffer, buffer_ls, gfn_model, rnd_model, gfn_optimizer, 
             with torch.no_grad():
                 metrics.update(eval(name, energy, buffer, gfn_model, logging_dict))
             wandb.log(metrics, step=logging_dict['epoch'])
-            save_checkpoint(name, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer, metrics, logging_dict)
+            if logging_dict['epoch'] % 1000 == 0:
+                save_checkpoint(name, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer, metrics, logging_dict)
             
         logging_dict['epoch'] = logging_dict['epoch'] + 1
 
@@ -336,7 +338,10 @@ if __name__ == '__main__':
     # load checkpoint
     name = f'result/{args.date}'
     if not os.path.exists(name):
-        os.makedirs(name)
+        os.makedirs(name+'/ckpt')
+        os.makedirs(name+'/sample')
+        os.makedirs(name+'/energy')
+        os.makedirs(name+'/dist')
         
     config = vars(args)
     
