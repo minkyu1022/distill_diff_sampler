@@ -19,7 +19,7 @@ CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --langevin \
   --partial_energy \
   --conditional_flow_model \
-  --batch_size 2 \
+  --batch_size 4 \
   --max_grad_norm 1.0 \
   --clipping \
   --seed $SEED \

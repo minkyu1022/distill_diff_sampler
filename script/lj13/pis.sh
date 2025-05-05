@@ -12,12 +12,11 @@ fi
 CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --method pis_lp \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
-  --project nips_lj55 \
-  --energy lj55 \
+  --project nips_lj13 \
+  --energy lj13 \
   --mode_fwd pis \
-  --epochs 30000 \
-  --langevin \
-  --batch_size 4 \
   --max_grad_norm 1.0 \
+  --lr_policy 0.0001 \
   --clipping \
+  --epochs 15000 \
   --seed $SEED \

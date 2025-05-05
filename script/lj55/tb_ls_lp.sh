@@ -10,14 +10,20 @@ if [ -z "$GPU_DEVICE" ] || [ -z "$SEED" ]; then
 fi
 
 CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
-  --method pis_lp \
+  --method tb_ls_lp \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
   --project nips_lj55 \
+  --teacher mala \
   --energy lj55 \
-  --mode_fwd pis \
-  --epochs 30000 \
   --langevin \
-  --batch_size 4 \
+  --local_search \
+  --both_ways \
+  --burn_in 100 \
+  --max_iter_ls 4000 \
+  --teacher_batch_size 200 \
   --max_grad_norm 1.0 \
+  --ld_schedule \
+  --batch_size 4 \
   --clipping \
+  --epochs 30000 \
   --seed $SEED \

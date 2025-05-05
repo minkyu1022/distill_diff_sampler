@@ -19,7 +19,6 @@ CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --langevin \
   --partial_energy \
   --conditional_flow_model \
-  --batch_size 16 \
   --max_grad_norm 1.0 \
   --clipping \
   --epochs 15000 \

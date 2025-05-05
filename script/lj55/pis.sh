@@ -15,9 +15,8 @@ CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --project nips_lj55 \
   --energy lj55 \
   --mode_fwd pis \
-  --epochs 30000 \
-  --langevin \
-  --batch_size 4 \
   --max_grad_norm 1.0 \
+  --batch_size 4 \
   --clipping \
+  --epochs 15000 \
   --seed $SEED \
