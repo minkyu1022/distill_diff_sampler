@@ -3,6 +3,11 @@
 # 터미널에서 GPU 디바이스와 seed 값을 필수 인자로 받음
 GPU_DEVICE=$1  # 첫 번째 인자
 SEED=$2        # 두 번째 인자
+DATA_DIR=$3
+MAX_ITER_LS=$4 # 두 번째 인자
+BURN_IN=$5 # 세 번째 인자
+BATCH_SIZE=$6 # 네 번째 인자
+
 
 if [ -z "$GPU_DEVICE" ] || [ -z "$SEED" ]; then
   echo "Usage: $0 <GPU_DEVICE> <SEED>"
@@ -12,15 +17,16 @@ fi
 CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --method ours \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
-  --project nips_lj13 \
-  --data_dir data/lj13_bad/mala \
+  --project teacher_lj13 \
+  --data_dir $DATA_DIR \
   --energy lj13 \
   --teacher mala \
+  --scheduler_type random \
   --epochs 5000 15000 \
   --max_grad_norm 1.0 \
-  --burn_in 2000 \
-  --max_iter_ls 4000 \
-  --teacher_batch_size 250 \
+  --burn_in $BURN_IN \
+  --max_iter_ls $MAX_ITER_LS \
+  --teacher_batch_size $BATCH_SIZE \
   --rnd_weight 100000 \
   --ld_schedule \
   --both_ways \

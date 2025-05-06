@@ -15,6 +15,7 @@ CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --project nips_aldp \
   --data_dir data/aldp/md \
   --energy aldp \
+  --scheduler_type random \
   --epochs 20000 60000 \
   --both_ways \
   --clipping \
