@@ -101,6 +101,7 @@ if __name__ == '__main__':
         initial_positions = prior.sample(args.teacher_batch_size).to(args.device)
     elif args.teacher=='md':
         initial_positions = energy.initial_position
+        initial_positions = initial_positions.repeat(args.teacher_batch_size, 1).to(args.device)
     samples, rewards = teacher.sample(initial_positions)
     
     eval(energy, samples)
