@@ -26,7 +26,7 @@ parser.add_argument('--project', type=str, default='aldp')
 # Dataset config
 parser.add_argument('--data_dir', type=str, default='')
 parser.add_argument('--teacher', type=str, default='md', choices=('md', 'mala'))
-parser.add_argument('--energy', type=str, default='aldp', choices=('aldp', 'lj13', 'lj55'))
+parser.add_argument('--energy', type=str, default='aldp', choices=('aldp', 'pypv', 'lj13', 'lj55'))
 
 ## MD config
 parser.add_argument("--gamma", default=1.0, type=float)
@@ -132,6 +132,8 @@ coeff_matrix = cal_subtb_coef_matrix(args.subtb_lambda, args.T).to(args.device)
 def get_energy():
     if args.energy == 'aldp':
         energy = ALDP(args)
+    elif args.energy == 'pypv':
+        energy = PYPV(args)
     elif args.energy == 'lj13':
         energy = LJ13(args)
     elif args.energy == 'lj55':
@@ -197,9 +199,9 @@ def eval(name, energy, buffer, gfn_model, logging_dict, final=False):
     metrics["visualization/energy_hist"] = wandb.Image(energy_hist_fig)
     metrics["visualization/dist"] = wandb.Image(dist_fig)
     
-    if args.energy == 'aldp':
-        aldp_fig = draw_aldps(samples[:3])    
-        metrics["visualization/aldp"] = wandb.Image(aldp_fig)
+    if args.energy in ['aldp', 'pypv']:
+        mol_fig = draw_mols(args.energy, samples[:3])    
+        metrics["visualization/3D"] = wandb.Image(mol_fig)
     
     if logging_dict['epoch'] % 1000 == 0:
         save_eval(name, sample_dict, energy_dict, dist_dict, logging_dict)
@@ -285,7 +287,7 @@ def train(name, energy, buffer, buffer_ls, gfn_model, rnd_model, gfn_optimizer, 
         if logging_dict['epoch'] in args.epochs:
             gfn_model.eval()
             rnd_model.eval()
-            if args.energy == 'aldp':
+            if args.energy in ['aldp', 'pypv']:
                 initial_positions = buffer.sample_pos(args.teacher_batch_size).to(args.device)
             if args.energy in ['lj13', 'lj55']:
                 prior = Gaussian(args.device, energy.data_ndim, std=args.prior_std)

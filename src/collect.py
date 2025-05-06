@@ -22,14 +22,14 @@ parser.add_argument('--project', type=str, default='aldp')
 # Dataset config
 parser.add_argument('--data_dir', type=str, default='')
 parser.add_argument('--teacher', type=str, default='md', choices=('md', 'mala'))
-parser.add_argument('--energy', type=str, default='aldp', choices=('aldp', 'lj13', 'lj55'))
+parser.add_argument('--energy', type=str, default='aldp', choices=('aldp', 'pypv', 'lj13', 'lj55'))
 
 ## MD config
 parser.add_argument("--gamma", default=1.0, type=float)
 parser.add_argument('--n_steps', type=int, default=200000)
 parser.add_argument("--timestep", default=5e-4, type=float)
 parser.add_argument("--temperature", default=600, type=float)
-parser.add_argument('--teacher_batch_size', type=int, default=300)
+parser.add_argument('--teacher_batch_size', type=int, default=1000)
 
 # MALA config
 parser.add_argument('--burn_in', type=int, default=15000)
@@ -47,6 +47,8 @@ set_seed(args.seed)
 def get_energy():
     if args.energy == 'aldp':
         energy = ALDP(args)
+    elif args.energy == 'pypv':
+        energy = PYPV(args)
     elif args.energy == 'lj13':
         energy = LJ13(args)
     elif args.energy == 'lj55':
@@ -60,12 +62,33 @@ def get_teacher():
         teacher = MALA(args, energy)
     return teacher
 
+def eval(energy, samples):
+    
+    gt_samples = energy.sample(1000).to(args.device)
+    energies = energy.energy(samples).detach().cpu().numpy()
+    gt_energies = energy.energy(gt_samples).detach().cpu().numpy()
+    interatomic_distances = energy.interatomic_distance(samples).reshape(-1).detach().cpu().numpy()
+    gt_interatomic_distances = energy.interatomic_distance(gt_samples).reshape(-1).detach().cpu().numpy()
+
+    energy_dict = {
+        'Student': energies,
+        'GT': gt_energies,
+    }
+    dist_dict = {
+        'Student': interatomic_distances,
+        'GT': gt_interatomic_distances
+    }
+
+    energy_hist_fig = plot_energy_hist(energy_dict)
+    dist_fig = make_interatomic_dist_fig(dist_dict)
+    wandb.log({"Energy Hist": wandb.Image(energy_hist_fig)})
+    wandb.log({"Interatomic Distances": wandb.Image(dist_fig)})
 
 if __name__ == '__main__':    
     name = f'data/{args.save_dir}/{args.teacher}'
     os.makedirs(name, exist_ok=True)
 
-    wandb.init(project=args.project, config=args.__dict__)
+    wandb.init(project=args.project, config=vars(args))
     wandb.run.log_code(".")
 
     energy = get_energy()
@@ -79,6 +102,8 @@ if __name__ == '__main__':
     elif args.teacher=='md':
         initial_positions = energy.initial_position
     samples, rewards = teacher.sample(initial_positions)
+    
+    eval(energy, samples)
 
     np.save(f'{name}/positions.npy', samples.detach().cpu().numpy())
     np.save(f'{name}/rewards.npy', rewards.detach().cpu().numpy())

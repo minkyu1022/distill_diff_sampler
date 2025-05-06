@@ -91,7 +91,7 @@ atom_size = {
     "phosphorus": 100,
 }
 
-def draw_aldps(samples):
+def draw_mols(name, samples):
     """
     Draw a figure containing 3D molecule.
 
@@ -109,13 +109,14 @@ def draw_aldps(samples):
     fig, axs = plt.subplots(1, 3, figsize=(30, 10), subplot_kw=dict(projection="3d"))
 
     for i, ax in enumerate(axs.flatten()):
-        draw_aldp(
+        draw_mol(
+            name,
             ax,
             samples[i].reshape(-1, 3).detach().cpu().numpy(),
         )
     return fig
 
-def draw_aldp(ax, coordinate):
+def draw_mol(name, ax, coordinate):
     """
     Visualizes molecular conformation using matplotlib's 3D plot.
     Returns the generated matplotlib Axes object.
@@ -130,7 +131,7 @@ def draw_aldp(ax, coordinate):
     # get topology (md.Topology) from pdb file
     coordinate = np.nan_to_num(coordinate, nan=0.0, posinf=0.0, neginf=0.0)
     
-    topology = md.load("./data/aldp/aldp.pdb").topology
+    topology = md.load(f"./data/{name}/{name}.pdb").topology
 
     center_of_mass = np.mean(coordinate, axis=0)
     coordinate = coordinate - center_of_mass
