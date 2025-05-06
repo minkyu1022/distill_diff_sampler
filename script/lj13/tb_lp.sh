@@ -12,10 +12,10 @@ fi
 CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --method tb_lp \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
-  --project nips_lj13 \
+  --project Neurips_lj13 \
   --energy lj13 \
   --langevin \
-  --epochs 15000 \
+  --epochs 5000 \
   --max_grad_norm 1.0 \
   --clipping \
   --seed $SEED \

@@ -12,16 +12,15 @@ fi
 CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --method tb_ls \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
-  --project nips_lj13 \
+  --project Neurips_lj13 \
   --teacher mala \
   --energy lj13 \
   --local_search \
   --both_ways \
-  --burn_in 50 \
-  --max_iter_ls 2000 \
-  --teacher_batch_size 500 \
+  --burn_in 500 \
+  --max_iter_ls 1000 \
   --max_grad_norm 1.0 \
   --ld_schedule \
   --clipping \
-  --epochs 15000 \
+  --epochs 10000 \
   --seed $SEED \

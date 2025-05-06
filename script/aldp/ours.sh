@@ -22,4 +22,4 @@ CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --rnd_weight 500000 \
   --both_ways \
   --clipping \
-  --seed $SEED
+  --seed $SEED \

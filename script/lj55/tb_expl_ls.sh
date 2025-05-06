@@ -12,14 +12,13 @@ fi
 CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --method tb_expl_ls \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
-  --project nips_lj55 \
+  --project Neurips_lj55 \
   --teacher mala \
   --energy lj55 \
   --local_search \
   --both_ways \
-  --burn_in 100 \
+  --burn_in 2000 \
   --max_iter_ls 4000 \
-  --teacher_batch_size 200 \
   --exploratory \
   --exploration_wd \
   --exploration_factor 0.1 \
@@ -27,5 +26,5 @@ CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --ld_schedule \
   --batch_size 4 \
   --clipping \
-  --epochs 30000 \
+  --epochs 10000 \
   --seed $SEED \

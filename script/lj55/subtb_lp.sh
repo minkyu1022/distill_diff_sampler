@@ -12,10 +12,10 @@ fi
 CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --method subtb_lp \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
-  --project nips_lj55 \
+  --project Neurips_lj55 \
   --energy lj55 \
   --mode_fwd subtb \
-  --epochs 30000 \
+  --epochs 5000 \
   --langevin \
   --partial_energy \
   --conditional_flow_model \

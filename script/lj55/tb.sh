@@ -12,9 +12,9 @@ fi
 CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --method tb \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
-  --project nips_lj55 \
+  --project Neurips_lj55 \
   --energy lj55 \
-  --epochs 40000 \
+  --epochs 50000 \
   --max_grad_norm 1.0 \
   --batch_size 4 \
   --clipping \

@@ -12,7 +12,7 @@ fi
 CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --method subtb_lp \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
-  --project nips_lj13 \
+  --project Neurips_lj13 \
   --energy lj13 \
   --mode_fwd subtb \
   --lr_flow 0.0005 \
@@ -21,5 +21,5 @@ CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --conditional_flow_model \
   --max_grad_norm 1.0 \
   --clipping \
-  --epochs 15000 \
+  --epochs 5000 \
   --seed $SEED \
