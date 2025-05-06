@@ -334,7 +334,7 @@ if __name__ == '__main__':
     buffer_ls = ReplayBuffer(args.buffer_size, 'cpu', energy.log_reward, args.batch_size, data_ndim=energy.data_ndim, beta=args.beta,
                           rank_weight=args.rank_weight, prioritized=args.prioritized)
     gfn_model, rnd_model = init_model(args, energy)
-    if args.method == 'ours' and args.data_dir:
+    if args.method in ['ours', 'mle'] and args.data_dir:
         gfn_model.flow_model = torch.nn.Parameter(buffer.load_data(args.data_dir).to(args.device))
     gfn_optimizer, rnd_optimizer = init_optimizer(args, gfn_model, rnd_model)
     
