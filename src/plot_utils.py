@@ -63,7 +63,7 @@ def plot_energy_hist(energy_dict, dpi=300):
         lower = min(energy_dict['GT'].min(), energy_dict['Student'].min())
     
     for name, energy in energy_dict.items():
-        plt.hist(energy, range=(lower, upper), bins=40, density=False, label=name, alpha=0.5)
+        plt.hist(energy, range=(lower, upper), bins=40, density=True, label=name, alpha=0.5)
 
     plt.ylabel("Count", fontsize=14)
     plt.xticks(fontsize=12)
