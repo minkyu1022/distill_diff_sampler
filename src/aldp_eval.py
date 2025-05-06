@@ -25,7 +25,7 @@ parser.add_argument('--data_dir', type=str, default='')
 parser.add_argument('--t_scale', type=float, default=0.2)
 parser.add_argument("--temperature", default=300, type=float)
 parser.add_argument('--log_var_range', type=float, default=4.)
-parser.add_argument('--energy', type=str, default='aldp', choices=('aldp'))
+parser.add_argument('--energy', type=str, default='aldp', choices=('aldp', 'pypv'))
 
 # Architecture config
 parser.add_argument('--architecture', type=str, default="egnn", choices=('pis', 'egnn'))
@@ -75,10 +75,8 @@ args = parser.parse_args()
 def get_energy():
     if args.energy == 'aldp':
         energy = ALDP(args)
-    elif args.energy == 'lj13':
-        energy = LJ13(args)
-    elif args.energy == 'lj55':
-        energy = LJ55(args)
+    elif args.energy == 'pypv':
+        energy = PYPV(args)
     return energy
 
 def eval(energy, buffer, gfn_model):
@@ -141,14 +139,14 @@ def eval(energy, buffer, gfn_model):
     phi_psi_fig = plot_phi_psi(samples.reshape(samples.shape[0], -1, 3))
     gt_phi_psi_fig = plot_phi_psi(gt_samples.reshape(gt_samples.shape[0], -1, 3))
     teacher_phi_psi_fig = plot_phi_psi(teacher_samples.reshape(teacher_samples.shape[0], -1, 3))
-    aldp_fig = draw_aldps(samples[:3])
+    mol_fig = draw_mols(args.energy, samples[:3])    
 
     metrics["visualization/energy_hist"] = wandb.Image(energy_hist_fig)
     metrics["visualization/dist"] = wandb.Image(dist_fig)
     metrics["visualization/phi_psi"] = wandb.Image(phi_psi_fig)
     metrics["visualization/gt_phi_psi"] = wandb.Image(gt_phi_psi_fig)
     metrics["visualization/teacher_phi_psi"] = wandb.Image(teacher_phi_psi_fig)
-    metrics["visualization/aldp"] = wandb.Image(aldp_fig)
+    metrics["visualization/3D"] = wandb.Image(mol_fig)
 
     np.save(f'{name}/samples.npy', samples.reshape(samples.shape[0], -1, 3).cpu().numpy())
     np.save(f'{name}/energies.npy', energies)
@@ -174,7 +172,7 @@ if __name__ == '__main__':
     buffer = ReplayBuffer(args.buffer_size, 'cpu', energy.log_reward, args.eval_size, data_ndim=energy.data_ndim, beta=args.beta,
                           rank_weight=args.rank_weight, prioritized=args.prioritized)
     
-    buffer.load_data("data/aldp/md")
+    buffer.load_data(f"data/{args.energy}/md")
     
     gfn_model = GFN(energy.data_ndim, args.s_emb_dim, args.hidden_dim, args.harmonics_dim, args.t_emb_dim,
             trajectory_length=args.T, clipping=args.clipping, lgv_clip=args.lgv_clip, gfn_clip=args.gfn_clip,

@@ -88,7 +88,7 @@ class LJ13(LennardJonesEnergy):
         self.initial_position = self.approx_sample[0]
 
         if args.method in ['ours', 'mle']:
-            self.energy_call_count = 2000000 # 4000 max_iter_ls * 500 batch_size for 1 round teacher
+            self.energy_call_count = args.max_iter_ls * args.teacher_batch_size
         else:
             self.energy_call_count = 0
         
@@ -112,7 +112,7 @@ class LJ55(LennardJonesEnergy):
         self.initial_position = self.approx_sample[0]
 
         if args.method in ['ours', 'mle']:
-            self.energy_call_count = 3000000 # 15000 max_iter_ls * 200 batch_size for 1 round teacher
+            self.energy_call_count = args.max_iter_ls * args.teacher_batch_size
         else:
             self.energy_call_count = 0
         
