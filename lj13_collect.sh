@@ -1,9 +1,9 @@
-bash script/lj13/collect.sh 0 12000 2000 1 lj13_5K     & # 12K
-bash script/lj13/collect.sh 1 12000 2000 2 lj13_10K    & # 24K
-bash script/lj13/collect.sh 2 12000 2000 4 lj13_20K    & # 48K
-bash script/lj13/collect.sh 3 12000 2000 8 lj13_40K    & # 96K
-bash script/lj13/collect.sh 4 12000 2000 16 lj13_80K   & # 192K
-bash script/lj13/collect.sh 5 12000 2000 32 lj13_160K  & # 384K
-bash script/lj13/collect.sh 6 12000 2000 64 lj13_320K  & # 768K
-bash script/lj13/collect.sh 7 12000 2000 128 lj13_640K & # 1536K
+bash script/lj13/collect.sh 0 4000 2000 4 lj13_4K     & # 16K
+bash script/lj13/collect.sh 1 4000 2000 8 lj13_8K    & # 32K
+bash script/lj13/collect.sh 2 4000 2000 16 lj13_16K    & # 64K
+bash script/lj13/collect.sh 3 4000 2000 32 lj13_32K    & # 128K
+bash script/lj13/collect.sh 4 4000 2000 64 lj13_64K   & # 256K
+bash script/lj13/collect.sh 5 4000 2000 128 lj13_128K  & # 512K
+bash script/lj13/collect.sh 6 4000 2000 256 lj13_256K  & # 1024K
+bash script/lj13/collect.sh 7 4000 2000 512 lj13_512K & # 2048K
 wait
