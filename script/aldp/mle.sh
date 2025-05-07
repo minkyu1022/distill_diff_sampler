@@ -12,7 +12,7 @@ fi
 CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --method mle \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
-  --project 0506_aldp \
+  --project aldp \
   --data_dir data/aldp/md \
   --energy aldp \
   --bwd \
