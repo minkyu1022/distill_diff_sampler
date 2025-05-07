@@ -28,13 +28,6 @@ parser.add_argument('--data_dir', type=str, default='')
 parser.add_argument('--teacher', type=str, default='md', choices=('md', 'mala'))
 parser.add_argument('--energy', type=str, default='aldp', choices=('aldp', 'pypv', 'lj13', 'lj55'))
 
-## MD config
-parser.add_argument("--gamma", default=1.0, type=float)
-parser.add_argument('--n_steps', type=int, default=30000)
-parser.add_argument("--timestep", default=5e-4, type=float)
-parser.add_argument("--temperature", default=600, type=float)
-parser.add_argument('--teacher_batch_size', type=int, default=1000)
-
 # Architecture config
 parser.add_argument('--architecture', type=str, default="egnn", choices=('pis', 'egnn'))
 
@@ -95,7 +88,7 @@ parser.add_argument('--mode_fwd', type=str, default="tb", choices=('tb', 'tb-avg
 parser.add_argument('--student_init', type=str, default='reinit', choices=('reinit', 'partialinit','finetune'))
 parser.add_argument('--scheduler_type', type=str, default='uniform', choices=('uniform', 'random', 'equidistant'))
 
-## Local search
+## Local search and MD config
 parser.add_argument('--ls_cycle', type=int, default=100)
 parser.add_argument('--burn_in', type=int, default=15000)
 parser.add_argument('--prior_std', type=float, default=1.75)
@@ -105,10 +98,14 @@ parser.add_argument('--ld_schedule', action='store_true', default=False)
 parser.add_argument('--local_search', action='store_true', default=False)
 parser.add_argument('--target_acceptance_rate', type=float, default=0.574)
 
+parser.add_argument("--gamma", default=1.0, type=float)
+parser.add_argument("--temperature", default=600, type=float)
+parser.add_argument('--teacher_batch_size', type=int, default=1000)
+
 ## Replay buffer
 parser.add_argument('--beta', type=float, default=1.)
 parser.add_argument('--rank_weight', type=float, default=1e-2)
-parser.add_argument('--buffer_size', type=int, default=600000)
+parser.add_argument('--buffer_size', type=int, default=1000000)
 parser.add_argument('--prioritized', type=str, default="rank", choices=('none', 'reward', 'rank'))
 parser.add_argument('--sampling', type=str, default="buffer", choices=('sleep_phase', 'energy', 'buffer'))
 

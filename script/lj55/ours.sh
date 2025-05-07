@@ -12,7 +12,7 @@ fi
 CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
   --project Neurips_lj55 \
-  --data_dir data/lj55_5K/mala \
+  --data_dir data/lj55_3K/mala \
   --energy lj55 \
   --teacher mala \
   --scheduler_type random \

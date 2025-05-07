@@ -8,9 +8,10 @@ class MD(BaseSet):
         self.energy = energy  
         self.gamma = args.gamma   
         self.device = args.device
-        self.n_steps = args.n_steps
-        self.timestep = args.timestep
+        self.burn_in = args.burn_in
+        self.ld_step = args.ld_step
         self.rnd_weight = args.rnd_weight
+        self.max_iter_ls = args.max_iter_ls
         self.batch_size = args.teacher_batch_size
         
         kBT = 1.380649 * 6.02214076 * 1e-3 * args.temperature
@@ -18,7 +19,7 @@ class MD(BaseSet):
         self.beta = 1 / kBT
         
         self.mass = energy.mass
-        self.std = torch.sqrt(2 * kBT * self.gamma * self.timestep / self.mass)
+        self.std = torch.sqrt(2 * kBT * self.gamma * self.ld_step / self.mass)
 
     def sample(self, initial_position, expl_model=None):
         positions = []
@@ -30,15 +31,15 @@ class MD(BaseSet):
         energy = self.energy.non_reduced_energy(position.reshape(self.batch_size, -1))
         force = -torch.autograd.grad(energy.sum(), position)[0]
         
-        for i in trange(self.n_steps):
+        for i in trange(self.max_iter_ls):
             position, velocity, force = self.step(position, velocity, force, expl_model)
-            if i % 100 == 0:
-                reward = self.energy.log_reward(position.reshape(self.batch_size, -1))
-                positions.append(position.detach().cpu())
-                rewards.append(reward.detach().cpu())
+            reward = self.energy.log_reward(position.reshape(self.batch_size, -1))
+            positions.append(position.detach().cpu())
+            rewards.append(reward.detach().cpu())
             
-        positions = torch.stack(positions, dim=0)
-        rewards = torch.stack(rewards, dim=0)
+        # stack after burning in first self.burn_in positions and rewards
+        positions = torch.stack(positions[self.burn_in:], dim=0)
+        rewards = torch.stack(rewards[self.burn_in:], dim=0)
         positions = positions.reshape(-1, self.energy.data_ndim)
         rewards = rewards.reshape(-1)
         print(f"{positions.shape[0]} samples collected")
@@ -47,11 +48,11 @@ class MD(BaseSet):
     def step(self, position, velocity, force, expl_model=None):
         with torch.no_grad():
             velocity = (
-                (1 - self.gamma * self.timestep) * velocity
-                + force * self.timestep / self.mass
+                (1 - self.gamma * self.ld_step) * velocity
+                + force * self.ld_step / self.mass
                 + self.std * torch.randn_like(position, device=position.device)
             )
-            position = position + velocity * self.timestep
+            position = position + velocity * self.ld_step
 
         position = position.requires_grad_(True)
         
