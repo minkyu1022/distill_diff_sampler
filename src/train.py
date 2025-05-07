@@ -28,6 +28,13 @@ parser.add_argument('--data_dir', type=str, default='')
 parser.add_argument('--teacher', type=str, default='md', choices=('md', 'mala'))
 parser.add_argument('--energy', type=str, default='aldp', choices=('aldp', 'pypv', 'lj13', 'lj55'))
 
+## MD config
+parser.add_argument("--gamma", default=1.0, type=float)
+parser.add_argument('--n_steps', type=int, default=30000)
+parser.add_argument("--timestep", default=5e-4, type=float)
+parser.add_argument("--temperature", default=600, type=float)
+parser.add_argument('--teacher_batch_size', type=int, default=1000)
+
 # Architecture config
 parser.add_argument('--architecture', type=str, default="egnn", choices=('pis', 'egnn'))
 
@@ -56,6 +63,7 @@ parser.add_argument('--lr_policy', type=float, default=5e-4)
 parser.add_argument('--max_grad_norm', type=float, default=-1)
 parser.add_argument('--weight_decay', type=float, default=1e-7)
 parser.add_argument('--epochs', type=int, nargs='+', default=[20000])
+parser.add_argument('--mle_epoch', type=int, default=0)
 parser.add_argument('--use_weight_decay', action='store_true', default=False)
 
 ## GFN
@@ -88,7 +96,7 @@ parser.add_argument('--mode_fwd', type=str, default="tb", choices=('tb', 'tb-avg
 parser.add_argument('--student_init', type=str, default='reinit', choices=('reinit', 'partialinit','finetune'))
 parser.add_argument('--scheduler_type', type=str, default='uniform', choices=('uniform', 'random', 'equidistant'))
 
-## Local search and MD config
+## Local search
 parser.add_argument('--ls_cycle', type=int, default=100)
 parser.add_argument('--burn_in', type=int, default=15000)
 parser.add_argument('--prior_std', type=float, default=1.75)
@@ -98,14 +106,10 @@ parser.add_argument('--ld_schedule', action='store_true', default=False)
 parser.add_argument('--local_search', action='store_true', default=False)
 parser.add_argument('--target_acceptance_rate', type=float, default=0.574)
 
-parser.add_argument("--gamma", default=1.0, type=float)
-parser.add_argument("--temperature", default=600, type=float)
-parser.add_argument('--teacher_batch_size', type=int, default=1000)
-
 ## Replay buffer
 parser.add_argument('--beta', type=float, default=1.)
 parser.add_argument('--rank_weight', type=float, default=1e-2)
-parser.add_argument('--buffer_size', type=int, default=1000000)
+parser.add_argument('--buffer_size', type=int, default=600000)
 parser.add_argument('--prioritized', type=str, default="rank", choices=('none', 'reward', 'rank'))
 parser.add_argument('--sampling', type=str, default="buffer", choices=('sleep_phase', 'energy', 'buffer'))
 
@@ -216,10 +220,10 @@ def train_step(energy, gfn_model, gfn_optimizer, rnd_model, rnd_optimizer, it, e
         if it % 2 == 0:
             if args.sampling == 'buffer':
                 loss, states, _, _, log_r  = fwd_train_step(energy, gfn_model, exploration_std, return_exp=True)
-                if args.local_search or args.langevin:
-                    buffer.add(states[:, -1].detach().cpu(), log_r.detach().cpu())
+                buffer.add(states[:, -1].detach().cpu(), log_r.detach().cpu())
 
-                rnd_loss = rnd_model.forward(states[:, -1].clone().detach()).mean()
+                if args.method == 'ours':
+                    rnd_loss = rnd_model.forward(states[:, -1].clone().detach()).mean()
             else:
                 loss = fwd_train_step(energy, gfn_model, exploration_std)
         else:
@@ -234,7 +238,7 @@ def train_step(energy, gfn_model, gfn_optimizer, rnd_model, rnd_optimizer, it, e
         torch.nn.utils.clip_grad_norm_(gfn_model.parameters(), max_norm=args.max_grad_norm)
     gfn_optimizer.step()
     
-    if args.mode_bwd == 'tb' and args.both_ways:
+    if args.method == 'ours':
         rnd_loss.backward()
         rnd_optimizer.step()
         return loss.item(), rnd_loss.item()
@@ -280,6 +284,7 @@ def bwd_train_step(energy, gfn_model, rnd_model, buffer, buffer_ls, exploration_
 def train(name, energy, buffer, buffer_ls, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer, logging_dict):
     metrics = dict()
     
+    mle_count = 0
     while logging_dict['epoch'] < args.epochs[-1]:
         if logging_dict['epoch'] in args.epochs:
             gfn_model.eval()
@@ -296,7 +301,17 @@ def train(name, energy, buffer, buffer_ls, gfn_model, rnd_model, gfn_optimizer, 
             gfn_model, rnd_model = init_model(args, energy)
             gfn_model.flow_model = flow_data
             gfn_optimizer, rnd_optimizer = init_optimizer(args, gfn_model, rnd_model)
-            
+        
+        if (logging_dict['epoch'] in args.epochs or logging_dict['epoch'] == 0) and args.mle_epoch > 0:
+            args.bwd = True
+            args.mode_bwd = 'mle'
+            args.both_ways = False
+        if mle_count > args.mle_epoch:
+            args.bwd = False
+            args.mode_bwd = 'tb'
+            args.both_ways = True
+            mle_count = 0
+        
         gfn_model.train()
         rnd_model.train()
 
@@ -315,6 +330,7 @@ def train(name, energy, buffer, buffer_ls, gfn_model, rnd_model, gfn_optimizer, 
                 save_checkpoint(name, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer, metrics, logging_dict)
             
         logging_dict['epoch'] = logging_dict['epoch'] + 1
+        mle_count += 1
 
     gfn_model.eval()
     with torch.no_grad():

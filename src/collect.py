@@ -103,8 +103,8 @@ if __name__ == '__main__':
         initial_positions = energy.initial_position
         initial_positions = initial_positions.repeat(args.teacher_batch_size, 1).to(args.device)
     samples, rewards = teacher.sample(initial_positions)
-    
-    eval(energy, samples)
 
     np.save(f'{name}/positions.npy', samples.detach().cpu().numpy())
     np.save(f'{name}/rewards.npy', rewards.detach().cpu().numpy())
+    
+    eval(energy, samples[:1000].to(args.device))
