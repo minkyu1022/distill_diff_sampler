@@ -82,7 +82,7 @@ class ALDP(BaseSet):
         self.samples = self.samples[torch.randperm(self.samples.shape[0], generator=torch.Generator().manual_seed(0))]
         
         if args.method in ['ours', 'mle']:
-            self.energy_call_count = args.n_steps * args.teacher_batch_size
+            self.energy_call_count = args.max_iter_ls * args.teacher_batch_size
         else:
             self.energy_call_count = 0
 
