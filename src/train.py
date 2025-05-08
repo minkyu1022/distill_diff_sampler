@@ -300,17 +300,18 @@ def train(name, energy, buffer, buffer_ls, gfn_model, rnd_model, gfn_optimizer, 
             gfn_model.flow_model = flow_data
             gfn_optimizer, rnd_optimizer = init_optimizer(args, gfn_model, rnd_model)
         
-        if (logging_dict['epoch'] in args.epochs or logging_dict['epoch'] == 0) and args.mle_epoch > 0:
-            args.bwd = True
-            args.mode_bwd = 'mle'
-            args.both_ways = False
-            gfn_optimizer, rnd_optimizer = init_optimizer(args, gfn_model, rnd_model, True)
-        if mle_count > args.mle_epoch:
-            args.bwd = False
-            args.mode_bwd = 'tb'
-            args.both_ways = True
-            gfn_optimizer, rnd_optimizer = init_optimizer(args, gfn_model, rnd_model)
-            mle_count = 0
+        if args.method == 'ours':
+            if (logging_dict['epoch'] in args.epochs or logging_dict['epoch'] == 0) and args.mle_epoch > 0:
+                args.bwd = True
+                args.mode_bwd = 'mle'
+                args.both_ways = False
+                gfn_optimizer, rnd_optimizer = init_optimizer(args, gfn_model, rnd_model, True)
+            if mle_count > args.mle_epoch:
+                args.bwd = False
+                args.mode_bwd = 'tb'
+                args.both_ways = True
+                gfn_optimizer, rnd_optimizer = init_optimizer(args, gfn_model, rnd_model)
+                mle_count = 0
         
         gfn_model.train()
         rnd_model.train()
