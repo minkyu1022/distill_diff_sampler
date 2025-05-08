@@ -19,6 +19,9 @@ CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --rnd_weight 100000 \
   --max_grad_norm 1.0 \
   --ld_schedule \
+  --mle_epoch 5000 \
+  --lr_policy 0.0001 \
+  --lr_flow 0.0001 \
   --burn_in 4000 \
   --max_iter_ls 10000 \
   --teacher_batch_size 1 \
