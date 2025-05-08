@@ -116,8 +116,12 @@ def init_model(args, energy):
     rnd_model = RNDModel(args, energy.data_ndim).to(args.device)
     return gfn_model, rnd_model
 
-def init_optimizer(args, gfn_model, rnd_model):
-    gfn_optimizer = get_gfn_optimizer(args.architecture, gfn_model, args.lr_policy, args.lr_flow, args.lr_back, args.learn_pb,
+def init_optimizer(args, gfn_model, rnd_model, mle_init=False):
+    if mle_init:
+        gfn_optimizer = get_gfn_optimizer(args.architecture, gfn_model, args.mle_lr, args.lr_flow, args.lr_back, args.learn_pb,
+                                      args.conditional_flow_model, args.use_weight_decay, args.weight_decay)
+    else:
+        gfn_optimizer = get_gfn_optimizer(args.architecture, gfn_model, args.lr_policy, args.lr_flow, args.lr_back, args.learn_pb,
                                       args.conditional_flow_model, args.use_weight_decay, args.weight_decay)
     rnd_optimizer = torch.optim.Adam(rnd_model.predictor.parameters(), lr=args.lr_rnd)
     return gfn_optimizer, rnd_optimizer

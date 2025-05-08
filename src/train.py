@@ -60,6 +60,7 @@ parser.add_argument('--lr_rnd', type=float, default=1e-3)
 parser.add_argument('--lr_flow', type=float, default=1e-3)
 parser.add_argument('--lr_back', type=float, default=5e-4)
 parser.add_argument('--lr_policy', type=float, default=5e-4)
+parser.add_argument('--mle_lr', type=float, default=5e-4)
 parser.add_argument('--max_grad_norm', type=float, default=-1)
 parser.add_argument('--weight_decay', type=float, default=1e-7)
 parser.add_argument('--epochs', type=int, nargs='+', default=[20000])
@@ -306,10 +307,12 @@ def train(name, energy, buffer, buffer_ls, gfn_model, rnd_model, gfn_optimizer, 
             args.bwd = True
             args.mode_bwd = 'mle'
             args.both_ways = False
+            gfn_optimizer, rnd_optimizer = init_optimizer(args, gfn_model, rnd_model, True)
         if mle_count > args.mle_epoch:
             args.bwd = False
             args.mode_bwd = 'tb'
             args.both_ways = True
+            gfn_optimizer, rnd_optimizer = init_optimizer(args, gfn_model, rnd_model)
             mle_count = 0
         
         gfn_model.train()
