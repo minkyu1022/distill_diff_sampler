@@ -42,6 +42,9 @@ parser.add_argument('--lgv_layers', type=int, default=3)
 parser.add_argument('--joint_layers', type=int, default=5)
 parser.add_argument('--zero_init', action='store_true', default=False)
 
+parser.add_argument('--teacher_batch_size', type=int, default=1)
+parser.add_argument('--max_iter_ls', type=int, default=60000)
+
 ## GFN
 parser.add_argument('--T', type=int, default=500)
 parser.add_argument('--lgv_clip', type=float, default=1e2)
@@ -69,7 +72,11 @@ parser.add_argument('--prioritized', type=str, default="rank", choices=('none', 
 parser.add_argument('--sampling', type=str, default="buffer", choices=('sleep_phase', 'energy', 'buffer'))
 
 # Logging config
+parser.add_argument('--checkpoint', type=str, default="")
 parser.add_argument('--eval_size', type=int, default=10000)
+parser.add_argument('--checkpoint_epoch', type=int, default=0)
+parser.add_argument('--align', action='store_true', default=False)
+
 
 args = parser.parse_args()
 
@@ -116,15 +123,17 @@ def eval(energy, buffer, gfn_model):
     while count < args.eval_size:
         init_state = torch.zeros(5000, energy.data_ndim).to(args.device)
         samples, metrics['final_eval/log_Z_IS'], metrics['final_eval/ELBO'], metrics['final_eval/log_Z_learned'] = log_partition_function(init_state, gfn_model, energy.log_reward)
-        samples = align_topologies(samples)
-        if samples.shape[0] == 0:
-            print('No samples remain, skipping')
-            continue
-        samples = align_chiral(samples)
-        if samples.shape[0] == 0:
-            print('No samples remain, skipping')
-            continue
-        samples = samples.reshape(samples.shape[0], -1)
+        
+        if args.align:
+            samples = align_topologies(samples)
+            if samples.shape[0] == 0:
+                print('No samples remain, skipping')
+                continue
+            samples = align_chiral(samples)
+            if samples.shape[0] == 0:
+                print('No samples remain, skipping')
+                continue
+            samples = samples.reshape(samples.shape[0], -1)
         sampless.append(samples)
         
         count += samples.shape[0]
