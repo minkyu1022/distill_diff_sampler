@@ -4,6 +4,7 @@ import torch
 import argparse
 
 from utils import *
+from logger import *
 from models import GFN
 from energies import *
 from plot_utils import *
@@ -134,19 +135,19 @@ def eval(energy, buffer, gfn_model):
     gt_samples = energy.sample(args.eval_size).to(energy.device)
     teacher_samples = buffer.sample_pos(args.eval_size).to(args.device)
 
+    mol_fig = draw_mols(args.energy, samples[:3])  
     energy_hist_fig = plot_energy_hist(energy_dict)
     dist_fig = make_interatomic_dist_fig(dist_dict)
     phi_psi_fig = plot_phi_psi(samples.reshape(samples.shape[0], -1, 3))
     gt_phi_psi_fig = plot_phi_psi(gt_samples.reshape(gt_samples.shape[0], -1, 3))
-    teacher_phi_psi_fig = plot_phi_psi(teacher_samples.reshape(teacher_samples.shape[0], -1, 3))
-    mol_fig = draw_mols(args.energy, samples[:3])    
+    teacher_phi_psi_fig = plot_phi_psi(teacher_samples.reshape(teacher_samples.shape[0], -1, 3))  
 
+    metrics["visualization/3D"] = wandb.Image(mol_fig)
     metrics["visualization/energy_hist"] = wandb.Image(energy_hist_fig)
     metrics["visualization/dist"] = wandb.Image(dist_fig)
     metrics["visualization/phi_psi"] = wandb.Image(phi_psi_fig)
     metrics["visualization/gt_phi_psi"] = wandb.Image(gt_phi_psi_fig)
     metrics["visualization/teacher_phi_psi"] = wandb.Image(teacher_phi_psi_fig)
-    metrics["visualization/3D"] = wandb.Image(mol_fig)
 
     np.save(f'{name}/samples.npy', samples.reshape(samples.shape[0], -1, 3).cpu().numpy())
     np.save(f'{name}/energies.npy', energies)
@@ -171,7 +172,7 @@ if __name__ == '__main__':
     
     buffer = ReplayBuffer(args.buffer_size, 'cpu', energy.log_reward, args.eval_size, data_ndim=energy.data_ndim, beta=args.beta,
                           rank_weight=args.rank_weight, prioritized=args.prioritized)
-    
+        
     buffer.load_data(f"data/{args.energy}/md")
     
     gfn_model = GFN(energy.data_ndim, args.s_emb_dim, args.hidden_dim, args.harmonics_dim, args.t_emb_dim,
@@ -184,8 +185,10 @@ if __name__ == '__main__':
             architecture=args.architecture, lgv_layers=args.lgv_layers,
             joint_layers=args.joint_layers, zero_init=args.zero_init, device=args.device, 
             scheduler=args.scheduler, sigma_max=args.sigma_max, sigma_min=args.sigma_min, energy=args.energy).to(args.device)
-    
-    gfn_model.load_state_dict(torch.load(f'result/{args.date}/policy.pt'))
+
+    path = f'result/{args.checkpoint}/ckpt/{args.checkpoint_epoch}.pth'
+    checkpoint = torch.load(path)
+    gfn_model.load_state_dict(checkpoint['gfn_model'])
     gfn_model.eval()
     
     metrics = dict()

@@ -41,20 +41,6 @@ class LinearNoiseSchedule(NoiseSchedule):
         return torch.tensor(self.std**2 * (self.T - t), dtype=torch.float32)
 
 
-class QuadraticNoiseSchedule(NoiseSchedule):
-    def __init__(self, beta: float, T: float):
-        super().__init__()
-        self.beta = beta
-        self.T = T
-
-    def __call__(self, t: float) -> torch.Tensor:
-        # g(t) = sqrt(2 * beta * (T - t) / T)
-        return torch.sqrt(torch.tensor(self.beta * 2 * (self.T - t) / self.T, dtype=torch.float32))
-
-    def sigma_squared(self, t: float) -> torch.Tensor:
-        return torch.tensor((self.beta / self.T) * (self.T - t) ** 2, dtype=torch.float32)
-
-
 class GeometricNoiseSchedule(NoiseSchedule):
     def __init__(self, sigma_max: float, sigma_min: float, T: float):
         super().__init__()
