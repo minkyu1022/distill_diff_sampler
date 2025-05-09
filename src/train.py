@@ -57,7 +57,7 @@ parser.add_argument('--mle_lr', type=float, default=5e-4)
 parser.add_argument('--max_grad_norm', type=float, default=-1)
 parser.add_argument('--weight_decay', type=float, default=1e-7)
 parser.add_argument('--epochs', type=int, nargs='+', default=[20000])
-parser.add_argument('--mle_epoch', type=int, default=0)
+parser.add_argument('--mle_epoch', type=int, default=-1)
 parser.add_argument('--use_weight_decay', action='store_true', default=False)
 
 ## GFN
@@ -201,6 +201,11 @@ def eval(name, energy, buffer, gfn_model, logging_dict, final=False):
     if args.energy in ['aldp', 'pypv']:
         mol_fig = draw_mols(args.energy, samples[:3])    
         metrics["visualization/3D"] = wandb.Image(mol_fig)
+        if (logging_dict['epoch'] in args.epochs or logging_dict['epoch'] == 0) and args.method in ['ours', 'mle']:
+            gt_phi_psi_fig = plot_phi_psi(gt_samples.reshape(gt_samples.shape[0], -1, 3))
+            teacher_phi_psi_fig = plot_phi_psi(teacher_samples.reshape(teacher_samples.shape[0], -1, 3))
+            metrics["visualization/gt_phi_psi"] = wandb.Image(gt_phi_psi_fig)
+            metrics["visualization/teacher_phi_psi"] = wandb.Image(teacher_phi_psi_fig)
     
     if logging_dict['epoch'] % 1000 == 0:
         save_eval(name, sample_dict, energy_dict, dist_dict, logging_dict)
@@ -283,6 +288,7 @@ def train(name, energy, buffer, buffer_ls, gfn_model, rnd_model, gfn_optimizer, 
     metrics = dict()
     
     mle_count = 0
+    mle_flag = False
     while logging_dict['epoch'] < args.epochs[-1]:
         if logging_dict['epoch'] in args.epochs:
             gfn_model.eval()
@@ -301,17 +307,21 @@ def train(name, energy, buffer, buffer_ls, gfn_model, rnd_model, gfn_optimizer, 
             gfn_optimizer, rnd_optimizer = init_optimizer(args, gfn_model, rnd_model)
         
         if args.method == 'ours':
-            if (logging_dict['epoch'] in args.epochs or logging_dict['epoch'] == 0) and args.mle_epoch > 0:
+            if (logging_dict['epoch'] in args.epochs or logging_dict['epoch'] == 0) and args.mle_epoch > 0 and not mle_flag:
                 args.bwd = True
                 args.mode_bwd = 'mle'
                 args.both_ways = False
                 gfn_optimizer, rnd_optimizer = init_optimizer(args, gfn_model, rnd_model, True)
-            if mle_count > args.mle_epoch:
+                mle_flag = True
+            if mle_count == args.mle_epoch and mle_flag:
                 args.bwd = False
                 args.mode_bwd = 'tb'
                 args.both_ways = True
                 gfn_optimizer, rnd_optimizer = init_optimizer(args, gfn_model, rnd_model)
                 mle_count = 0
+                mle_flag = False
+            
+        print(f"Epoch {logging_dict['epoch']}: {args.mode_bwd}")
         
         gfn_model.train()
         rnd_model.train()
@@ -331,7 +341,8 @@ def train(name, energy, buffer, buffer_ls, gfn_model, rnd_model, gfn_optimizer, 
                 save_checkpoint(name, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer, metrics, logging_dict)
             
         logging_dict['epoch'] = logging_dict['epoch'] + 1
-        mle_count += 1
+        if args.mle_epoch > 0 and mle_flag:
+            mle_count += 1
 
     gfn_model.eval()
     with torch.no_grad():
@@ -365,6 +376,7 @@ if __name__ == '__main__':
     if not args.checkpoint:
         logging_dict = {
             'epoch': 0,
+            'mle_count': 0,
             'log_Z_est': None,
             'mlls': [],
             'elbos': [],

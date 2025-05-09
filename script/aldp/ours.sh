@@ -3,6 +3,7 @@
 # 터미널에서 GPU 디바이스와 seed 값을 필수 인자로 받음
 GPU_DEVICE=$1  # 첫 번째 인자
 SEED=$2        # 두 번째 인자
+LR=$3
 
 if [ -z "$GPU_DEVICE" ] || [ -z "$SEED" ]; then
   echo "Usage: $0 <GPU_DEVICE> <SEED>"
@@ -13,15 +14,17 @@ CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --method ours \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
   --project Neurips_aldp \
-  --data_dir data/aldp_200K/md \
+  --data_dir data/aldp_50K/md \
   --energy aldp \
   --scheduler_type random \
   --epochs 10000 30000 \
   --mle_epoch 5000 \
-  --rnd_weight 500000 \
+  --rnd_weight 100000 \
   --burn_in 10000 \
-  --max_iter_ls 110000 \
-  --teacher_batch_size 2 \
+  --lr_policy $LR \
+  --lr_flow $LR \
+  --max_iter_ls 60000 \
+  --teacher_batch_size 1 \
   --both_ways \
   --clipping \
   --seed $SEED \
