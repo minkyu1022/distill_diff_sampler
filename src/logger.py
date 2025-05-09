@@ -1,12 +1,18 @@
 import torch
 import numpy as np
 
-def save_eval(name, sample_dict, energy_dict, dist_dict, logging_dict):
+def save_eval(name, sample_dict, energy_dict, dist_dict, logging_dict, epochs):
     for k, v in sample_dict.items():
+        if logging_dict['epoch'] in epochs and k in ['Teacher', 'GT']:
+            continue
         np.save(f'{name}/sample/{k}_{logging_dict["epoch"]}.npy', v.cpu().numpy())
     for k, v in energy_dict.items():
+        if logging_dict['epoch'] in epochs and k in ['Teacher', 'GT']:
+            continue
         np.save(f'{name}/energy/{k}_{logging_dict["epoch"]}.npy', v)
     for k, v in dist_dict.items():
+        if logging_dict['epoch'] in epochs and k in ['Teacher', 'GT']:
+            continue
         np.save(f'{name}/dist/{k}_{logging_dict["epoch"]}.npy', v)
 
 def save_checkpoint(name, gfn_model, rnd_model, gfn_optimizer, rnd_optimizer, metrics, logging_dict):

@@ -208,7 +208,7 @@ def eval(name, energy, buffer, gfn_model, logging_dict, final=False):
             metrics["visualization/teacher_phi_psi"] = wandb.Image(teacher_phi_psi_fig)
     
     if logging_dict['epoch'] % 1000 == 0:
-        save_eval(name, sample_dict, energy_dict, dist_dict, logging_dict)
+        save_eval(name, sample_dict, energy_dict, dist_dict, logging_dict, args.epochs)
     gfn_model.trajectory_length = args.T
     gfn_model.scheduler_type = args.scheduler_type
     return metrics
