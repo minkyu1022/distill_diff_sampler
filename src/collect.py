@@ -27,6 +27,7 @@ parser.add_argument('--energy', type=str, default='aldp', choices=('aldp', 'pypv
 ## MD config
 parser.add_argument("--gamma", default=1.0, type=float)
 parser.add_argument('--n_steps', type=int, default=200000)
+parser.add_argument('--eval_size', type=int, default=10000)
 parser.add_argument("--timestep", default=5e-4, type=float)
 parser.add_argument("--temperature", default=600, type=float)
 parser.add_argument('--teacher_batch_size', type=int, default=1000)
@@ -63,8 +64,8 @@ def get_teacher():
     return teacher
 
 def eval(energy, samples):
-    
-    gt_samples = energy.sample(1000).to(args.device)
+    samples = samples[:args.eval_size].to(args.device)
+    gt_samples = energy.sample(args.eval_size).to(args.device)
     energies = energy.energy(samples).detach().cpu().numpy()
     gt_energies = energy.energy(gt_samples).detach().cpu().numpy()
     interatomic_distances = energy.interatomic_distance(samples).reshape(-1).detach().cpu().numpy()
@@ -78,6 +79,11 @@ def eval(energy, samples):
         'Student': interatomic_distances,
         'GT': gt_interatomic_distances
     }
+    if args.energy in ['aldp', 'pypv']:        
+        gt_phi_psi_fig = plot_phi_psi(gt_samples.reshape(gt_samples.shape[0], -1, 3))
+        phi_psi_fig = plot_phi_psi(samples.reshape(samples.shape[0], -1, 3))
+        wandb.log({"GT Phi Psi": wandb.Image(gt_phi_psi_fig)})
+        wandb.log({"Teacher Phi Psi": wandb.Image(phi_psi_fig)})
 
     energy_hist_fig = plot_energy_hist(energy_dict)
     dist_fig = make_interatomic_dist_fig(dist_dict)
@@ -107,4 +113,4 @@ if __name__ == '__main__':
     np.save(f'{name}/positions.npy', samples.detach().cpu().numpy())
     np.save(f'{name}/rewards.npy', rewards.detach().cpu().numpy())
     
-    eval(energy, samples[:1000].to(args.device))
+    eval(energy, samples)
