@@ -107,7 +107,7 @@ parser.add_argument('--teacher_batch_size', type=int, default=1000)
 ## Replay buffer
 parser.add_argument('--beta', type=float, default=1.)
 parser.add_argument('--rank_weight', type=float, default=1e-2)
-parser.add_argument('--buffer_size', type=int, default=600000)
+parser.add_argument('--buffer_size', type=int, default=1000000)
 parser.add_argument('--prioritized', type=str, default="rank", choices=('none', 'reward', 'rank'))
 parser.add_argument('--sampling', type=str, default="buffer", choices=('sleep_phase', 'energy', 'buffer'))
 
