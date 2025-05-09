@@ -13,7 +13,7 @@ CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --method mle \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
   --project Neurips_aldp \
-  --data_dir data/aldp_200K/md \
+  --data_dir data/aldp_400K/md \
   --energy aldp \
   --bwd \
   --mode_bwd mle \

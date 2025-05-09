@@ -13,18 +13,18 @@ fi
 CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --method ours \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
-  --project Neurips_aldp \
-  --data_dir data/aldp_50K/md \
+  --project Neurips_aldp_rnd \
+  --data_dir data/aldp_400K/md \
   --energy aldp \
   --scheduler_type random \
   --epochs 10000 30000 \
   --mle_epoch 5000 \
-  --rnd_weight 100000 \
+  --rnd_weight 10000 \
   --burn_in 10000 \
   --lr_policy $LR \
   --lr_flow $LR \
-  --max_iter_ls 60000 \
-  --teacher_batch_size 1 \
+  --max_iter_ls 110000 \
+  --teacher_batch_size 4 \
   --both_ways \
   --clipping \
   --seed $SEED \
