@@ -53,7 +53,7 @@ class GFN(nn.Module):
         self.joint_layers = joint_layers
 
         if noise_scheduler == 'linear':
-            noise_schedule = LinearNoiseSchedule(t_scale, 1)
+            noise_schedule = LinearNoiseSchedule(t_scale, 1) # we use t_scale as sigma
         elif noise_scheduler == 'geometric':
             noise_schedule = GeometricNoiseSchedule(sigma_max, sigma_min, 1)
         else:
@@ -207,7 +207,7 @@ class GFN(nn.Module):
             # flow term
             logf[:, i] = flow
             if self.partial_energy:
-                ref_log_var = np.log(self.t_scale * max(t_i, time_schedule[1]))
+                ref_log_var = np.log(self.t_scale**2 * max(t_i, time_schedule[1]))
                 log_p_ref = -0.5 * (logtwopi + ref_log_var + np.exp(-ref_log_var) * (s ** 2)).sum(1)
                 logf[:, i] += (1 - t_i) * log_p_ref + t_i * log_r(s)
 
@@ -295,7 +295,7 @@ class GFN(nn.Module):
 
             logf[:, self.trajectory_length - i - 1] = flow
             if self.partial_energy:
-                ref_log_var = np.log(self.t_scale * max(t_prev, time_schedule[1]))
+                ref_log_var = np.log(self.t_scale**2 * max(t_prev, time_schedule[1]))
                 log_p_ref = -0.5 * (logtwopi + ref_log_var + np.exp(-ref_log_var) * (s ** 2)).sum(1)
                 logf[:, self.trajectory_length - i - 1] += (1 - t_prev) * log_p_ref + t_prev * log_r(s)
 
