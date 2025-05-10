@@ -90,39 +90,18 @@ def get_energy():
 def eval(energy, buffer, gfn_model):
     metrics = dict()
     
-    init_state = torch.zeros(5000, energy.data_ndim).to(args.device)
-    gt_samples = energy.sample(5000).to(energy.device)
-    teacher_samples = buffer.sample_pos(5000).to(args.device)
-    
-    samples, metrics['final_eval/log_Z_IS'], metrics['final_eval/ELBO'], metrics['final_eval/log_Z_learned'] = log_partition_function(init_state, gfn_model, energy.log_reward)
-    metrics[f'final_eval/mean_log_likelihood'] = torch.tensor(0.0, device=args.device) if args.mode_fwd == 'pis' else mean_log_likelihood(gt_samples[:200], gfn_model, energy.log_reward)
-    metrics['final_eval/EUBO'] = EUBO(gt_samples, gfn_model, energy.log_reward)
-
-    energies = energy.energy(samples).detach().cpu().numpy()
-    gt_energies = energy.energy(gt_samples).detach().cpu().numpy()
-    teacher_energies = energy.energy(teacher_samples).detach().cpu().numpy()
-    interatomic_distances = energy.interatomic_distance(samples).reshape(-1).detach().cpu().numpy()
-    gt_interatomic_distances = energy.interatomic_distance(gt_samples).reshape(-1).detach().cpu().numpy()
-    teacher_interatomic_distances = energy.interatomic_distance(teacher_samples).reshape(-1).detach().cpu().numpy()
-    
-    energy_dict = {
-        'Student': energies,
-        'Teacher': teacher_energies,
-        'GT': gt_energies,
-    }
-    dist_dict = {
-        'Student': interatomic_distances,
-        'Teacher': teacher_interatomic_distances,
-        'GT': gt_interatomic_distances
-    }
-    
-    metrics.update(get_sample_metrics(samples, gt_samples, True))
-    
     sampless = []
     count = 0
+    gt_samples = energy.sample(5000).to(energy.device)
     while count < args.eval_size:
         init_state = torch.zeros(5000, energy.data_ndim).to(args.device)
         samples, metrics['final_eval/log_Z_IS'], metrics['final_eval/ELBO'], metrics['final_eval/log_Z_learned'] = log_partition_function(init_state, gfn_model, energy.log_reward)
+
+        if count == 0:
+            metrics[f'final_eval/mean_log_likelihood'] = torch.tensor(0.0, device=args.device) if args.mode_fwd == 'pis' else mean_log_likelihood(gt_samples[:200], gfn_model, energy.log_reward)
+            metrics['final_eval/EUBO'] = EUBO(gt_samples, gfn_model, energy.log_reward)
+            
+            metrics.update(get_sample_metrics(samples, gt_samples, True))
         
         if args.align:
             samples = align_topologies(samples)
@@ -143,6 +122,25 @@ def eval(energy, buffer, gfn_model):
     samples = samples[:args.eval_size]
     gt_samples = energy.sample(args.eval_size).to(energy.device)
     teacher_samples = buffer.sample_pos(args.eval_size).to(args.device)
+
+    energies = energy.energy(samples[:5000]).detach().cpu().numpy()
+    gt_energies = energy.energy(gt_samples[:5000]).detach().cpu().numpy()
+    teacher_energies = energy.energy(teacher_samples[:5000]).detach().cpu().numpy()
+    
+    interatomic_distances = energy.interatomic_distance(samples[:5000]).reshape(-1).detach().cpu().numpy()
+    gt_interatomic_distances = energy.interatomic_distance(gt_samples[:5000]).reshape(-1).detach().cpu().numpy()
+    teacher_interatomic_distances = energy.interatomic_distance(teacher_samples[:5000]).reshape(-1).detach().cpu().numpy()
+    
+    energy_dict = {
+        'Student': energies,
+        'Teacher': teacher_energies,
+        'GT': gt_energies,
+    }
+    dist_dict = {
+        'Student': interatomic_distances,
+        'Teacher': teacher_interatomic_distances,
+        'GT': gt_interatomic_distances
+    }
 
     mol_fig = draw_mols(args.energy, samples[:3])  
     energy_hist_fig = plot_energy_hist(energy_dict)
