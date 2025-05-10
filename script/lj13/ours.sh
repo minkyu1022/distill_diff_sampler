@@ -22,7 +22,7 @@ CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --burn_in 2000 \
   --max_iter_ls 4000 \
   --teacher_batch_size 16 \
-  --rnd_weight 10000 \
+  --rnd_weight 1000 \
   --ld_schedule \
   --both_ways \
   --clipping \

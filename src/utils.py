@@ -112,7 +112,7 @@ def init_model(args, energy):
             conditional_flow_model=args.conditional_flow_model, learn_pb=args.learn_pb,
             architecture=args.architecture, lgv_layers=args.lgv_layers,
             joint_layers=args.joint_layers, zero_init=args.zero_init, device=args.device, 
-            scheduler=args.scheduler, sigma_max=args.sigma_max, sigma_min=args.sigma_min, energy=args.energy).to(args.device)
+            noise_scheduler=args.noise_scheduler, sigma_max=args.sigma_max, sigma_min=args.sigma_min, energy=args.energy, time_scheduler=args.time_scheduler).to(args.device)
     rnd_model = RNDModel(args, energy.data_ndim).to(args.device)
     return gfn_model, rnd_model
 
