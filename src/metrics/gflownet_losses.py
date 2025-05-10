@@ -97,3 +97,28 @@ def pis(initial_state, gfn, log_reward_fn, exploration_std=None, return_exp=Fals
         return loss.mean(), states, log_pfs, log_pbs, log_r
     else:
         return loss.mean()
+
+# GAFN
+
+def rnd_rewards(rnd_model, trajectory):
+    intrinsic_rewards = []
+    for t in range(trajectory.shape[1] - 1):
+        r_t = rnd_model.forward(trajectory[:,t])
+        intrinsic_rewards.append(r_t)  # shape (B,)
+    intrinsic_rewards = torch.stack(intrinsic_rewards, dim=1)  # (B, n)
+    
+    return intrinsic_rewards.sum(-1)
+
+def gafn(initial_state, rnd, gfn, log_reward_fn, exploration_std=None, return_exp=False):
+    states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_fwd(initial_state, exploration_std, log_reward_fn)
+    with torch.no_grad():
+        log_r = log_reward_fn(states[:, -1], count=True).detach()
+
+    intrinsic_reward_sum = rnd_rewards(rnd, states)
+    augmented_rewards = torch.logaddexp(log_r, intrinsic_reward_sum.log())
+    
+    loss = 0.5 * ((log_pfs.sum(-1) + log_fs[:, 0] - augmented_rewards - log_pbs.sum(-1)) ** 2)
+    if return_exp:
+        return loss.mean(), states, log_pfs, log_pbs, log_r
+    else:
+        return loss.mean()

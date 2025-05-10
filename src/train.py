@@ -86,7 +86,7 @@ parser.add_argument('--conditional_flow_model', action='store_true', default=Fal
 parser.add_argument('--mode_bwd', type=str, default="tb", choices=('tb', 'tb-avg', 'mle'))
 parser.add_argument('--langevin_scaling_per_dimension', action='store_true', default=False)
 parser.add_argument('--noise_scheduler', type=str, default='linear', choices=('linear', 'geometric'))
-parser.add_argument('--mode_fwd', type=str, default="tb", choices=('tb', 'tb-avg', 'db', 'subtb', "pis"))
+parser.add_argument('--mode_fwd', type=str, default="tb", choices=('tb', 'tb-avg', 'db', 'subtb', "pis", 'gafn'))
 parser.add_argument('--student_init', type=str, default='reinit', choices=('reinit', 'partialinit','finetune'))
 parser.add_argument('--time_scheduler', type=str, default='uniform', choices=('uniform', 'random', 'equidistant'))
 
@@ -220,41 +220,45 @@ def train_step(energy, gfn_model, gfn_optimizer, rnd_model, rnd_optimizer, it, e
 
     exploration_std = get_exploration_std(it, exploratory, exploration_factor, exploration_wd)
 
-    if args.both_ways:
-        if it % 2 == 0:
-            if args.sampling == 'buffer':
-                loss, states, _, _, log_r  = fwd_train_step(energy, gfn_model, exploration_std, return_exp=True)
-                
-                if args.reuse:
-                    buffer.add(states[:, -1].detach().cpu(), log_r.detach().cpu())
-
-                if args.method == 'ours':
-                    rnd_loss = rnd_model.forward(states[:, -1].clone().detach()).mean()
-            else:
-                loss = fwd_train_step(energy, gfn_model, exploration_std)
-        else:
-            loss, rnd_loss = bwd_train_step(energy, gfn_model, rnd_model, buffer, buffer_ls, exploration_std, it=it)
-    elif args.bwd:
-        loss, rnd_loss = bwd_train_step(energy, gfn_model, rnd_model, buffer, buffer_ls, exploration_std, it=it)
+    if args.method == 'gafn':
+        loss, states, _, _, log_r  = fwd_train_step(energy, gfn_model, exploration_std, return_exp=True, rnd_model=rnd_model)
+        rnd_loss = rnd_model.forward(states[:, -1].clone().detach()).mean()
     else:
-        loss = fwd_train_step(energy, gfn_model, exploration_std)
+        if args.both_ways:
+            if it % 2 == 0:
+                if args.sampling == 'buffer':
+                    loss, states, _, _, log_r  = fwd_train_step(energy, gfn_model, exploration_std, return_exp=True)
+                    
+                    if args.reuse:
+                        buffer.add(states[:, -1].detach().cpu(), log_r.detach().cpu())
+
+                    if args.method == 'ours':
+                        rnd_loss = rnd_model.forward(states[:, -1].clone().detach()).mean()
+                else:
+                    loss = fwd_train_step(energy, gfn_model, exploration_std)
+            else:
+                loss, rnd_loss = bwd_train_step(energy, gfn_model, rnd_model, buffer, buffer_ls, exploration_std, it=it)
+        elif args.bwd:
+            loss, rnd_loss = bwd_train_step(energy, gfn_model, rnd_model, buffer, buffer_ls, exploration_std, it=it)
+        else:
+            loss = fwd_train_step(energy, gfn_model, exploration_std)
 
     loss.backward()
     if args.max_grad_norm > 0:
         torch.nn.utils.clip_grad_norm_(gfn_model.parameters(), max_norm=args.max_grad_norm)
     gfn_optimizer.step()
     
-    if args.method == 'ours':
+    if args.method in ['ours', 'gafn']:
         rnd_loss.backward()
         rnd_optimizer.step()
         return loss.item(), rnd_loss.item()
     else:
         return loss.item(), 0
 
-def fwd_train_step(energy, gfn_model, exploration_std, return_exp=False):
+def fwd_train_step(energy, gfn_model, exploration_std, return_exp=False, rnd_model=None):
     init_state = torch.zeros(args.batch_size, energy.data_ndim, device=args.device)
     loss = get_gfn_forward_loss(args.mode_fwd, init_state, gfn_model, energy.log_reward, coeff_matrix,
-                                exploration_std=exploration_std, return_exp=return_exp)
+                                exploration_std=exploration_std, return_exp=return_exp, rnd_model=rnd_model)
     return loss
 
 def bwd_train_step(energy, gfn_model, rnd_model, buffer, buffer_ls, exploration_std=None, it=0):

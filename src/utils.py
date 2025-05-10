@@ -77,7 +77,7 @@ def get_gfn_optimizer(architecture, gfn_model, lr_policy, lr_flow, lr_back, back
 
 
 
-def get_gfn_forward_loss(mode, init_state, gfn_model, log_reward, coeff_matrix, exploration_std=None, return_exp=False):
+def get_gfn_forward_loss(mode, init_state, gfn_model, log_reward, coeff_matrix, exploration_std=None, return_exp=False, rnd_model=None):
     if mode == 'tb':
         loss = fwd_tb(init_state, gfn_model, log_reward, exploration_std, return_exp=return_exp)
     elif mode == 'tb-avg':
@@ -88,6 +88,8 @@ def get_gfn_forward_loss(mode, init_state, gfn_model, log_reward, coeff_matrix, 
         loss = subtb(init_state, gfn_model, log_reward, coeff_matrix, exploration_std)
     elif mode == 'pis':
         loss = pis(init_state, gfn_model, log_reward, exploration_std, return_exp=return_exp)
+    elif mode == 'gafn':
+        loss = gafn(init_state, rnd_model, gfn_model, log_reward, exploration_std, return_exp=return_exp)
     return loss
 
 
