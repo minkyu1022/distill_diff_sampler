@@ -108,6 +108,7 @@ parser.add_argument('--teacher_batch_size', type=int, default=1000)
 parser.add_argument('--beta', type=float, default=1.)
 parser.add_argument('--rank_weight', type=float, default=1e-2)
 parser.add_argument('--buffer_size', type=int, default=1000000)
+parser.add_argument('--reuse', action='store_true', default=False)
 parser.add_argument('--prioritized', type=str, default="rank", choices=('none', 'reward', 'rank'))
 parser.add_argument('--sampling', type=str, default="buffer", choices=('sleep_phase', 'energy', 'buffer'))
 
@@ -223,7 +224,9 @@ def train_step(energy, gfn_model, gfn_optimizer, rnd_model, rnd_optimizer, it, e
         if it % 2 == 0:
             if args.sampling == 'buffer':
                 loss, states, _, _, log_r  = fwd_train_step(energy, gfn_model, exploration_std, return_exp=True)
-                buffer.add(states[:, -1].detach().cpu(), log_r.detach().cpu())
+                
+                if args.reuse:
+                    buffer.add(states[:, -1].detach().cpu(), log_r.detach().cpu())
 
                 if args.method == 'ours':
                     rnd_loss = rnd_model.forward(states[:, -1].clone().detach()).mean()
