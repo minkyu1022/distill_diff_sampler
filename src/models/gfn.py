@@ -329,16 +329,8 @@ class GFN(nn.Module):
             return [i * 1.0  / N for i in range(N + 1)]
 
         elif self.time_scheduler == 'random':
-            # zi ~ U([1,c]), Δt_i = zi / sum(z)
             z = torch.rand(N, device=self.device) * (self.c - 1) + 1
-            delta_t = (z / z.sum()).tolist()
-            t = [0.] + list(torch.cumsum(delta_t, 0).cpu())
-            return t  # length N+1
-
-        elif self.time_scheduler == 'equidistant':
-            # t1 ~ U([ε, 2/N-ε]), then t_i = t1 + (i-1)/N
-            t1 = float(torch.empty(1).uniform_(self.epsilon, 2/N - self.epsilon))
-            mid = [t1 + (i-1)/N for i in range(1, N)]
-            return [0.] + mid + [1.]
+            t = [0.] + list(torch.cumsum(z / z.sum(), 0).cpu())
+            return t 
         else:
             raise ValueError(f"Unknown time_scheduler {self.time_scheduler!r}")
