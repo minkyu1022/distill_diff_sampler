@@ -85,10 +85,10 @@ parser.add_argument('--learned_variance', action='store_true', default=False)
 parser.add_argument('--conditional_flow_model', action='store_true', default=False)
 parser.add_argument('--mode_bwd', type=str, default="tb", choices=('tb', 'tb-avg', 'mle'))
 parser.add_argument('--langevin_scaling_per_dimension', action='store_true', default=False)
-parser.add_argument('--scheduler', type=str, default='linear', choices=('linear', 'geometric'))
+parser.add_argument('--noise_scheduler', type=str, default='linear', choices=('linear', 'geometric'))
 parser.add_argument('--mode_fwd', type=str, default="tb", choices=('tb', 'tb-avg', 'db', 'subtb', "pis"))
 parser.add_argument('--student_init', type=str, default='reinit', choices=('reinit', 'partialinit','finetune'))
-parser.add_argument('--scheduler_type', type=str, default='uniform', choices=('uniform', 'random', 'equidistant'))
+parser.add_argument('--time_scheduler', type=str, default='uniform', choices=('uniform', 'random', 'equidistant'))
 
 ## Local search and MD config
 parser.add_argument('--ls_cycle', type=int, default=100)
@@ -148,7 +148,7 @@ def get_teacher():
 
 def eval(name, energy, buffer, gfn_model, logging_dict, final=False):
     gfn_model.trajectory_length = args.eval_T
-    gfn_model.scheduler_type = 'uniform'
+    gfn_model.time_scheduler = 'uniform'
     eval_dir = 'final_eval' if final else 'eval'
     metrics = dict()
     
@@ -210,7 +210,7 @@ def eval(name, energy, buffer, gfn_model, logging_dict, final=False):
     if logging_dict['epoch'] % 1000 == 0:
         save_eval(name, sample_dict, energy_dict, dist_dict, logging_dict, args.epochs)
     gfn_model.trajectory_length = args.T
-    gfn_model.scheduler_type = args.scheduler_type
+    gfn_model.time_scheduler = args.time_scheduler
     return metrics
 
 def train_step(energy, gfn_model, gfn_optimizer, rnd_model, rnd_optimizer, it, exploratory, buffer, buffer_ls, exploration_factor, exploration_wd):

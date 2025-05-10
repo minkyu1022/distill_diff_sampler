@@ -60,9 +60,9 @@ parser.add_argument('--partial_energy', action='store_true', default=False)
 parser.add_argument('--learned_variance', action='store_true', default=False)
 parser.add_argument('--conditional_flow_model', action='store_true', default=False)
 parser.add_argument('--langevin_scaling_per_dimension', action='store_true', default=False)
-parser.add_argument('--scheduler', type=str, default='linear', choices=('linear', 'geometric'))
+parser.add_argument('--noise_scheduler', type=str, default='linear', choices=('linear', 'geometric'))
 parser.add_argument('--mode_fwd', type=str, default="tb", choices=('tb', 'tb-avg', 'db', 'subtb', "pis"))
-parser.add_argument('--scheduler_type', type=str, default='uniform', choices=('uniform', 'random', 'equidistant'))
+parser.add_argument('--time_scheduler', type=str, default='uniform', choices=('uniform', 'random', 'equidistant'))
 
 ## Replay buffer
 parser.add_argument('--beta', type=float, default=1.)
@@ -193,7 +193,7 @@ if __name__ == '__main__':
             conditional_flow_model=args.conditional_flow_model, learn_pb=args.learn_pb,
             architecture=args.architecture, lgv_layers=args.lgv_layers,
             joint_layers=args.joint_layers, zero_init=args.zero_init, device=args.device, 
-            scheduler=args.scheduler, sigma_max=args.sigma_max, sigma_min=args.sigma_min, energy=args.energy).to(args.device)
+            noise_scheduler=args.noise_scheduler, sigma_max=args.sigma_max, sigma_min=args.sigma_min, energy=args.energy).to(args.device)
 
     path = f'result/{args.checkpoint}/ckpt/{args.checkpoint_epoch}.pth'
     checkpoint = torch.load(path)

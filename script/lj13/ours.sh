@@ -16,13 +16,13 @@ CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --data_dir data/lj13_16K/mala \
   --energy lj13 \
   --teacher mala \
-  --scheduler_type random \
+  --time_scheduler random \
   --epochs 5000 15000 \
   --max_grad_norm 1.0 \
   --burn_in 2000 \
   --max_iter_ls 4000 \
   --teacher_batch_size 16 \
-  --rnd_weight 100000 \
+  --rnd_weight 10000 \
   --ld_schedule \
   --both_ways \
   --clipping \

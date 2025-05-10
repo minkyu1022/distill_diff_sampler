@@ -22,8 +22,8 @@ class GFN(nn.Module):
                  learn_pb: bool = False,
                  architecture: str = 'egnn', lgv_layers: int = 3, joint_layers: int = 2,
                  zero_init: bool = False, device=torch.device('cuda'), 
-                 scheduler: str = 'constant', sigma_max: float = 1, sigma_min: float = 0.01, energy: str = 'aldp',
-                 schedule_type: str = 'uniform', epsilon: float = 1e-4, c: float = 10):
+                 noise_scheduler: str = 'linear', sigma_max: float = 1, sigma_min: float = 0.01, energy: str = 'aldp',
+                 time_scheduler: str = 'uniform', epsilon: float = 1e-4, c: float = 10):
         super(GFN, self).__init__()
         self.dim = dim
         self.harmonics_dim = harmonics_dim
@@ -36,7 +36,7 @@ class GFN(nn.Module):
         self.partial_energy = partial_energy
         self.t_scale = t_scale
         
-        self.schedule_type = schedule_type
+        self.time_scheduler = time_scheduler
         self.epsilon = epsilon
         self.c = c
 
@@ -52,12 +52,12 @@ class GFN(nn.Module):
         self.lgv_layers = lgv_layers
         self.joint_layers = joint_layers
 
-        if scheduler == 'linear':
+        if noise_scheduler == 'linear':
             noise_schedule = LinearNoiseSchedule(t_scale, 1)
-        elif scheduler == 'geometric':
+        elif noise_scheduler == 'geometric':
             noise_schedule = GeometricNoiseSchedule(sigma_max, sigma_min, 1)
         else:
-            raise ValueError("Unknown scheduler type")
+            raise ValueError("Unknown noise scheduler type")
         
         self.noise_schedule = noise_schedule.to(device)
         
@@ -325,20 +325,20 @@ class GFN(nn.Module):
            uniform, random‐nonuniform or equidistant. """
         N = self.trajectory_length
 
-        if self.schedule_type == 'uniform':
+        if self.time_scheduler == 'uniform':
             return [i * 1.0  / N for i in range(N + 1)]
 
-        elif self.schedule_type == 'random':
+        elif self.time_scheduler == 'random':
             # zi ~ U([1,c]), Δt_i = zi / sum(z)
             z = torch.rand(N, device=self.device) * (self.c - 1) + 1
             delta_t = (z / z.sum()).tolist()
             t = [0.] + list(torch.cumsum(delta_t, 0).cpu())
             return t  # length N+1
 
-        elif self.schedule_type == 'equidistant':
+        elif self.time_scheduler == 'equidistant':
             # t1 ~ U([ε, 2/N-ε]), then t_i = t1 + (i-1)/N
             t1 = float(torch.empty(1).uniform_(self.epsilon, 2/N - self.epsilon))
             mid = [t1 + (i-1)/N for i in range(1, N)]
             return [0.] + mid + [1.]
         else:
-            raise ValueError(f"Unknown schedule_type {self.schedule_type!r}")
+            raise ValueError(f"Unknown time_scheduler {self.time_scheduler!r}")

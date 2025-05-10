@@ -16,7 +16,7 @@ CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --data_dir data/lj55_3K/mala \
   --energy lj55 \
   --teacher mala \
-  --scheduler_type random \
+  --time_scheduler random \
   --rnd_weight 10000 \
   --max_grad_norm 1.0 \
   --ld_schedule \

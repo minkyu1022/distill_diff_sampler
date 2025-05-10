@@ -4,6 +4,7 @@
 GPU_DEVICE=$1  # 첫 번째 인자
 SEED=$2        # 두 번째 인자
 LR=$3
+RND_WEIGHT=$4
 
 if [ -z "$GPU_DEVICE" ] || [ -z "$SEED" ]; then
   echo "Usage: $0 <GPU_DEVICE> <SEED>"
@@ -16,10 +17,10 @@ CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --project Neurips_aldp_rnd \
   --data_dir data/aldp_400K/md \
   --energy aldp \
-  --scheduler_type random \
+  --time_scheduler random \
   --epochs 10000 30000 \
   --mle_epoch 5000 \
-  --rnd_weight 10000 \
+  --rnd_weight $RND_WEIGHT \
   --burn_in 10000 \
   --lr_policy $LR \
   --lr_flow $LR \
