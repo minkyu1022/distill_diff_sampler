@@ -14,7 +14,7 @@ fi
 CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --method ours \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
-  --project Neurips_aldp_rnd \
+  --project Neurips_aldp \
   --data_dir data/aldp_400K/md \
   --energy aldp \
   --time_scheduler random \
