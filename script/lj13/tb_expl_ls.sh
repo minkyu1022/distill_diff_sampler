@@ -25,5 +25,6 @@ CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --max_grad_norm 1.0 \
   --ld_schedule \
   --clipping \
+  --reuse \
   --epochs 10000 \
   --seed $SEED \

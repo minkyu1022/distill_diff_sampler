@@ -26,5 +26,6 @@ CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --ld_schedule \
   --batch_size 4 \
   --clipping \
+  --reuse \
   --epochs 10000 \
   --seed $SEED \
