@@ -12,7 +12,6 @@ class MD(BaseSet):
         self.ld_step = args.ld_step
         self.rnd_weight = args.rnd_weight
         self.max_iter_ls = args.max_iter_ls
-        self.batch_size = args.teacher_batch_size
         
         kBT = 1.380649 * 6.02214076 * 1e-3 * args.temperature
         
@@ -25,15 +24,15 @@ class MD(BaseSet):
         positions = []
         rewards = []
         
-        position = initial_position.reshape(self.batch_size, -1, 3)
+        position = initial_position.reshape(-1, self.energy.data_ndim//3, 3)
         velocity = torch.zeros_like(position, device=position.device)
         position = position.requires_grad_(True)
-        energy = self.energy.non_reduced_energy(position.reshape(self.batch_size, -1))
+        energy = self.energy.non_reduced_energy(position.reshape(-1, self.energy.data_ndim))
         force = -torch.autograd.grad(energy.sum(), position)[0]
         
         for i in trange(self.max_iter_ls):
             position, velocity, force = self.step(position, velocity, force, expl_model)
-            reward = self.energy.log_reward(position.reshape(self.batch_size, -1))
+            reward = self.energy.log_reward(position.reshape(-1, self.energy.data_ndim))
             positions.append(position.detach().cpu())
             rewards.append(reward.detach().cpu())
             
@@ -56,8 +55,8 @@ class MD(BaseSet):
 
         position = position.requires_grad_(True)
         
-        energy = self.energy.non_reduced_energy(position.reshape(self.batch_size, -1), count=True)
+        energy = self.energy.non_reduced_energy(position.reshape(-1, self.energy.data_ndim), count=True)
         if expl_model is not None:
-            energy = energy - self.rnd_weight * expl_model.forward(position.reshape(self.batch_size, -1))
+            energy = energy - self.rnd_weight * expl_model.forward(position.reshape(-1, self.energy.data_ndim))
         force = -torch.autograd.grad(energy.sum(), position)[0]
         return position.detach(), velocity.detach(), force.detach()

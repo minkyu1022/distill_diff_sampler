@@ -13,12 +13,13 @@ CUDA_VISIBLE_DEVICES=$GPU_DEVICE python src/train.py \
   --method tb_expl_ls \
   --date $(date +%Y-%m-%d_%H:%M:%S) \
   --project Neurips_aldp \
-  --teacher mala \
+  --teacher md \
   --energy aldp \
   --local_search \
   --both_ways \
   --burn_in 500 \
   --max_iter_ls 1000 \
+  --reuse \
   --exploratory \
   --exploration_wd \
   --exploration_factor 0.1 \
