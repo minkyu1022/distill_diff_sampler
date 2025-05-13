@@ -196,9 +196,9 @@ class GFN(nn.Module):
             dt = t_ip1 - t_i
 
             # center and reshape
-            s = s.reshape(s.shape[0], -1, 3)
-            s = s - torch.mean(s, dim=-2, keepdims=True)
-            s = s.reshape(s.shape[0], -1)
+            # s = s.reshape(s.shape[0], -1, 3)
+            # s = s - torch.mean(s, dim=-2, keepdims=True)
+            # s = s.reshape(s.shape[0], -1)
 
             # predict dynamics
             pfs, flow = self.predict_next_state(s, t_i, log_r)
