@@ -6,3 +6,6 @@ sample/
 full_data/
 assets/
 **/__pycache__/
+assets_copy/
+*.py
+*.sh
